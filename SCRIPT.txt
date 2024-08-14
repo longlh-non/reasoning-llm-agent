@@ -24,34 +24,13 @@ ENVIRONMENT SET UP:
 
 Response should be in this format and no nothing else: 
 
-{ 
-    location: the current location in the format (y, x) or cue_1 (if you are ons on CUE 1) or cue_2 (CUE 2 location) or cheese (if you are on cheese) or shock (shock location),
-    action: (you should inference for the next action. Then, tell the user about the next action - LEFT, RIGHT, UP, DOWN, STAY), 
-    next_location: your next location in the format (y, x) or cue_1 (if you are ons on CUE 1) or cue_2 (CUE 2 location) or cheese (if you are on cheese) or shock (shock location)
-}
+{{
+    \"location\": \"the current location in the format (y, x)\",
+    \"action\": \"you should inference for the next action. Then, tell the user about the next action - LEFT, RIGHT, UP, DOWN, STAY))\",
+    \"next_location\": \"your next location in the format (y, x)\",
+    \"current_location_name\": \"your current location in the format (y, x) or cue_1 (if you are ons on CUE 1) or cue_2 (CUE 2 location) or cheese (if you are on cheese) or shock (shock location)\",
+    \"next_location_name\": \"your next location in the format (y, x) or cue_1 (if you are ons on CUE 1) or cue_2 (CUE 2 location) or cheese (if you are on cheese) or shock (shock location)\"
+}}
 
-
-
-If you are at the cue_1, cue_2, cheese, shock location the next action should be STAY and wait for new information.
-
-You should take the 7x7 dimension grid world visualization below as an example and create your own depend on ENVIRONMENT SET UP.
-MAKE SURE THE AGENT, CUE 1, CUE 2, REWARD/PUNISHMENT ARE DISPLAYED ON THE VISUALISATION AND THE GRID WORLD IS IN THE RIGHT DIMENSION (6X8).
-
-   0   1   2   3   4   5   6   - n
--+---+---+---+---+---+---+---+
-0|   | X |   |   |   |   |   |
--+---+---+---+---+---+---+---+
-1|   |   |   |   |   | T |   |
--+---+---+---+---+---+---+---+
-2| C1|   | L1|   | L4|   |   |
--+---+---+---+---+---+---+---+
-3|   | L |   | L2|   | R |   |
--+---+---+---+---+---+---+---+
-4|   |   | L3|   |   |   |   |
--+---+---+---+---+---+---+---+
-5|   |   |   |   |   | B |   |
--+---+---+---+---+---+---+---+
-6|   |   |   |   |   |   |   |
--+---+---+---+---+---+---+---+
-|
-n
+keep infering the next step unless you stop at CUE 1, CUE 2, CHEESE, SHOCK
+If you are at the CUE location, the next action should be STAY and wait for new information.

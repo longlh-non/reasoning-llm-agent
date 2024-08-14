@@ -7,12 +7,17 @@ import gymnasium as gym
 import random
 
 class POMDPGridWorldEnv(gym.Env):
-    def __init__(self, is_using_llm=True, cue_1_loc=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_locations=[(1, 5), (3, 5)]):
+    def __init__(self, is_using_llm=True, cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_locations=[(1, 5), (3, 5)]):
         super(POMDPGridWorldEnv, self).__init__()
-
+        # Initialize the agent's position randomly
         self.row = np.random.randint(6, 10)
         self.collumn = np.random.randint(6, 10)
-        self.cue_1_loc = cue_1_loc
+        self.grid_world_dimension = (self.row, self.collumn)
+
+        self.agent_pos = np.random.randint(0, self.row), np.random.randint(0, self.collumn)
+        self.start = self.agent_pos
+
+        self.cue_1_location = cue_1_location
         self.cue_2_name = cue_2
         self.cue_2_loc_names = ['L1', 'L2', 'L3', 'L4']
 
@@ -26,7 +31,6 @@ class POMDPGridWorldEnv(gym.Env):
 
         self.done = False
         self.is_using_llm = is_using_llm
-        self.grid_world_dimension = (self.row, self.collumn)
 
         # Initialize pygame
         pygame.init()
@@ -41,8 +45,6 @@ class POMDPGridWorldEnv(gym.Env):
         self.reset()
 
     def reset(self):
-        # Initialize the agent's position randomly
-        self.agent_pos = np.random.randint(0, self.row), np.random.randint(0, self.collumn)
 
         if random.choice([True, False]):
             self.reward_conditions = ['LEFT', 'RIGHT']
@@ -66,15 +68,15 @@ class POMDPGridWorldEnv(gym.Env):
         # if self.is_using_llm:
 
         # Define the movement
-        if action == 0:  # Up
+        if action == 0 or action == 'UP':  # Up
             self.agent_pos = (max(0, self.agent_pos[0] - 1), self.agent_pos[1])
-        elif action == 1:  # Right
+        elif action == 1 or action == 'RIGHT':  # Right
             self.agent_pos = (self.agent_pos[0], min(self.collumn - 1, self.agent_pos[1] + 1))
-        elif action == 2:  # Down
+        elif action == 2  or action == 'DOWN':  # Down
             self.agent_pos = (min(self.row - 1, self.agent_pos[0] + 1), self.agent_pos[1])
-        elif action == 3:  # Left
+        elif action == 3  or action == 'LEFT':  # Left
             self.agent_pos = (self.agent_pos[0], max(0, self.agent_pos[1] - 1))
-        elif action == 4:  # Stay
+        elif action == 4  or action == 'STAY':  # Stay
             pass  # No change in position
 
         if tuple(self.agent_pos) not in self.path:
@@ -105,11 +107,6 @@ class POMDPGridWorldEnv(gym.Env):
         for y in range(0, self.grid_size, cell_size):
             pygame.draw.line(self.screen, (0, 0, 0), (0, y), (self.grid_size, y))
 
-        # Draw the path
-        for pos in self.path:
-            path_rect = pygame.Rect(pos[1] * cell_size, pos[0] * cell_size, cell_size, cell_size)
-            pygame.draw.rect(self.screen, (192, 192, 192), path_rect)  # Gray color for the path
-
         # Draw the agent
         agent_rect = pygame.Rect(self.agent_pos[1] * cell_size, self.agent_pos[0] * cell_size, cell_size, cell_size)
         pygame.draw.rect(self.screen, (79, 77, 184), agent_rect)  # Blue agent
@@ -123,7 +120,7 @@ class POMDPGridWorldEnv(gym.Env):
         pygame.draw.rect(self.screen, (255, 0, 0), goal_rect)  # Red goal
 
         # Draw cue 1 with "C1" label
-        cue_1_rect = pygame.Rect(self.cue_1_loc[1] * cell_size, self.cue_1_loc[0] * cell_size, cell_size, cell_size)
+        cue_1_rect = pygame.Rect(self.cue_1_location[1] * cell_size, self.cue_1_location[0] * cell_size, cell_size, cell_size)
         pygame.draw.rect(self.screen, (227, 81, 23), cue_1_rect)
         text_surface = font.render("C1", True, (0, 0, 0))
         text_rect = text_surface.get_rect(center=cue_1_rect.center)
@@ -146,6 +143,16 @@ class POMDPGridWorldEnv(gym.Env):
             text_surface = font.render(condition_label, True, (0, 0, 0))
             text_rect = text_surface.get_rect(center=reward_rect.center)
             self.screen.blit(text_surface, text_rect)    
+
+        # Draw the path
+        for pos in self.path:
+            path_rect = pygame.Rect(pos[1] * cell_size, pos[0] * cell_size, cell_size, cell_size)
+            pygame.draw.rect(self.screen, (192, 192, 192), path_rect)  # Gray color for the path
+            print("pos == self.cue_1_location: ", pos == self.cue_1_location)
+            if pos == self.cue_1_location:
+                text_surface = font.render("C1", True, (0, 0, 0))
+                text_rect = text_surface.get_rect(center=path_rect.center)
+                self.screen.blit(text_surface, text_rect)
 
         # Draw the "Continue" button
         button_rect = pygame.Rect(self.grid_size // 2 - 50, self.grid_size + 10, 100, 30)
