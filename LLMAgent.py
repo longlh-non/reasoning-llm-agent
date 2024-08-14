@@ -18,10 +18,3 @@ class ReasoningTool(BaseTool):
     async def _arun(self, query: str) -> str:
         # For async version (if needed)
         pass
-
-class ModelResponse(BaseModel):
-    """Final response to the state of the agent"""
-    location: str = Field(description = "Current location of the agent")
-    action: str = Field(description = "Action of the agent")
-    next_location: str = Field(description = "Next location of the agent")
-
