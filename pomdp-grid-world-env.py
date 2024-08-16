@@ -243,7 +243,11 @@ class POMDPGridWorldEnv(gym.Env):
         agent_label = 'A'
         agent_text_surface = self.font.render(agent_label, True, (0, 0, 0))
         agent_text_rect = agent_text_surface.get_rect(center=agent_rect.center)
-        self.screen.blit(agent_text_surface, agent_text_rect)        
+        self.screen.blit(agent_text_surface, agent_text_rect)
+
+        # ADD AN INFORMATION LINE AT THE BOTTOM OF THE POP UP
+        # ANNOUNCE IF REACHING THE FINAL GOAL (SPECIFY THAT IT'S CHEESE OR SHOCK)        
+        # CHANGE THE COLORS
 
         pygame.display.flip()
 
