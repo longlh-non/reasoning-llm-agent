@@ -50,10 +50,14 @@ class LLMAgent:
 
             These are the actions you can only do: UP, DOWN, LEFT, RIGHT, STAY and you can only perform and move one location per state.
 
-            If you reach CUE 1, ask for CUE 2 information.
+            If you reach CUE 1, the next action should be STAY and CUE 2 signals from Human.
 
-            If you reach CUE 2, ask for REWARD information.
+            Afterward, the next goal is to reach CUE 2 location.
+            
+            If you reach CUE 2, the next action should be STAY and ask for REWARD condition from Human.
 
+            Afterward, the next goal is to reach REWARD condition.
+            
             ENVIRONMENT SET UP: {env.environment_setup}
 
             Your current location is {env.agent_pos}.
@@ -78,8 +82,6 @@ class LLMAgent:
                 \"next_location_name\": \"(2, 2) or cue_1 or cue_2 or cheese or shock\",
                 \"current_goal_location\": \"(2, 2)\"
             }}
-
-            If you are at the CUE location, the next action should be STAY and wait for new observation to perform an ACTION.
         """
         self.action_parser = RegexParser(
             regex=r"Action: (.*)", output_keys=["action"], default_output_key="action"
@@ -108,25 +110,25 @@ class LLMAgent:
         #     Truncation: {trunc}
         #     Return: {self.ret}
         # """
+
         obs_message = 'KEEP INFERING'
 
         if llm_obs['location'] == str(self.env.cue_1_location):
             self.message_history.append(SystemMessage(content='WHAT IS CUE 2 NAME?'))
             obs_message = f"These are cue_2_locations: {{\"L1\": {self.env.cue_2_locations[0]}, \"L2\": {self.env.cue_2_locations[1]}, \"L3\": {self.env.cue_2_locations[2]}, \"L4\": {self.env.cue_2_locations[3]}}} and cue_2 is {self.env.cue_1_obs}. Keep Infering until reaching CUE 2"
 
-        print("self.env.cue_2_location: ", type(str(self.env.cue_2_location)))
-        print("self.env.cue_2_location: ", str(self.env.cue_2_location))
-        print("llm_obs['location']: ", type(llm_obs['location']))
-        print("llm_obs['location']: ", llm_obs['location'])
+            print("self.env.cue_1_obs: ", type(str(self.env.cue_1_obs)))
+            print("self.env.cue_1_obs: ", str(self.env.cue_1_obs))
+            
+            # print("llm_obs['location']: ", type(llm_obs['location']))
+            # print("llm_obs['location']: ", llm_obs['location'])
 
-        print("HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: ", llm_obs['location'] == str(self.env.cue_2_location))
+            print("HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: ", llm_obs['location'] == str(self.env.cue_2_location))
 
-        
+
         if llm_obs['location'] == str(self.env.cue_2_location):
             self.message_history.append(SystemMessage(content='WHAT IS REWARD CONDITION?'))
             obs_message = f"These are reward_conditions: {self.env.reward_conditions} which is located at {self.env.reward_locations} and reward condition is {self.env.reward_condition}. Keep Infering until reaching the reward condition"
-
-        print('obs_message: ', obs_message)
 
         self.message_history.append(HumanMessage(content=obs_message))
 

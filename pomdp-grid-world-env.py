@@ -49,7 +49,8 @@ class POMDPGridWorldEnv(gym.Env):
         self.cue_2_location = (0, 0)
         self.cue_2_name = cue_2
         self.cue_2_obs = 'Null'
-        
+        self.is_cue_2_reached = False
+
         self.is_reward_horizontal = random.choice([True, False])
         self.reward_condition = reward_condition
 
@@ -104,6 +105,14 @@ class POMDPGridWorldEnv(gym.Env):
         if self.done:
             raise RuntimeError("Environment is done. Please reset it.")
         
+        if self.agent_pos == self.cue_1_location and self.is_cue_1_reached != True:
+            self.is_cue_1_reached = True
+            self.show_popup('cue_1')
+
+        if self.agent_pos == self.cue_2_location and self.is_cue_1_reached and self.is_cue_2_reached != True:
+            self.is_cue_2_reached = True
+            self.show_popup('cue_2')
+
         # if self.is_using_llm:
 
         # Define the movement
@@ -118,13 +127,6 @@ class POMDPGridWorldEnv(gym.Env):
         elif action == 4  or action == 'STAY':  # Stay
             pass  # No change in position
 
-        
-        if self.agent_pos == self.cue_1_location:
-            self.is_cue_1_reached = True
-            self.show_popup('cue_1')
-
-        if self.agent_pos == self.cue_2_location and self.is_cue_1_reached:
-            self.show_popup('cue_2')
 
         if tuple(self.agent_pos) not in self.path:
             self.path.append(tuple(self.agent_pos))  # Add new position to the path
@@ -242,13 +244,6 @@ class POMDPGridWorldEnv(gym.Env):
         agent_text_surface = self.font.render(agent_label, True, (0, 0, 0))
         agent_text_rect = agent_text_surface.get_rect(center=agent_rect.center)
         self.screen.blit(agent_text_surface, agent_text_rect)        
-
-        # Draw the "Continue" button
-        button_rect = pygame.Rect(self.grid_size // 2 - 50, self.grid_size + 10, 100, 30)
-        pygame.draw.rect(self.screen, (0, 200, 0), button_rect)
-        text_surface = self.font.render("Continue", True, (255, 255, 255))
-        text_rect = text_surface.get_rect(center=button_rect.center)
-        self.screen.blit(text_surface, text_rect)
 
         pygame.display.flip()
 
