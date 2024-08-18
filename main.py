@@ -48,7 +48,7 @@ def run_environment():
     )
 
     # LangChain setup
-    # Set up OpenAI API key
+    # Set up OpenAI API key - MAKE THIS KEY PRIVATE
     os.environ["OPENAI_API_KEY"] = "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"  # Replace with your actual API key
 
 
