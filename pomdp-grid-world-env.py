@@ -211,7 +211,6 @@ class POMDPGridWorldEnv(gym.Env):
         return observation, self.reward_obs, self.done, {}
 
 
-    # RENDER ENVIRONMENT
     def render(self, mode='human'):
         self.screen.fill((255, 255, 255))  # White background
 
@@ -290,8 +289,6 @@ class POMDPGridWorldEnv(gym.Env):
             self.show_reward_popup()
             self.reset()        
         
-        # CHANGE THE COLORS
-
         pygame.display.flip()
 
     def random_obs(self, type):
