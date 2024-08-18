@@ -49,10 +49,17 @@ def run_environment():
 
     # LangChain setup
     # Set up OpenAI API key
-    os.environ["OPENAI_API_KEY"] = "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"  # Replace with your actual API key
+    os.environ["OPENAI_API_KEY"] = "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"  # Replace with your actual API key
+
+
+    # CHECK IF NEED A NEW AGENT - CURRENT RUNIING THE SAME AGENT EVERY TIME WITH THE SAME INSTANCE
+    # TRY NEW INSTANCE - SAME INSTANCE
+    # TRY NEW AGENT
+    # TRY NEW ENV
+    # TRY SAME EVERYTHING
 
     # Initialize the OpenAI LLM
-    llm = ChatOpenAI(model="gpt-4o", model_kwargs={ "response_format": { "type": "json_object" }})
+    llm = ChatOpenAI(model="gpt-4o-mini", model_kwargs={ "response_format": { "type": "json_object" }})
 
     # Create the environment
     env = gym.make('POMDPGridWorldEnv-v0')
@@ -63,23 +70,35 @@ def run_environment():
 
     agent = LLMAgent(llm, env)
     agent.reset()
-
-    while not done:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                done = True
-            else:         
-                agent_response = agent.act()
-                observation, reward_obs, done, info = env.step(agent_response['action'])
-                obs_message = agent.observe(llm_obs=agent_response, obs = observation)
-                print('agent_response: ', agent_response)
-                print(f"Action: {agent_response['action']}")
-                print('obs_message: ', obs_message)
+    iteration_times = 0
+    maximum_iteration_times = 50
+    while iteration_times < maximum_iteration_times:
+        iteration_times+=1
+        print("Experiments #", iteration_times)
+        # ADD INFERING TIMES LIMITATION
+        infering_times = 0
+        while not done:
+            for event in pygame.event.get():
+                infering_times+=1
+                if infering_times > 50:
+                    done = True
+                    infering_times = 0
                 
-                env.render()
-                print(f"Observation: {observation}, Action: {agent_response['action']}, Reward: {reward_obs}, Done: {done}")
 
-    env.close()
+                if event.type == pygame.QUIT:
+                    done = True
+                else:         
+                    agent_response = agent.act()
+                    observation, reward_obs, done, info = env.step(agent_response['action'])
+                    obs_message = agent.observe(llm_obs=agent_response, obs = observation)
+                    print("infering_times: ", infering_times)
+                    print('agent_response: ', agent_response)
+                    print(f"Action: {agent_response['action']}")
+                    
+                    env.render()
+                    # print(f"Observation: {observation}, Action: {agent_response['action']}, Reward: {reward_obs}, Done: {done}")
+
+        env.close()
 
 if __name__ == "__main__":
     run_environment()

@@ -32,6 +32,8 @@ class LLMAgent:
     def get_docs(cls, env):
         return env.unwrapped.__doc__
 
+    # GIVE THE LLM AN EXAMPLE
+    # THINK ABOUT TREE OF THOUGHT
     def __init__(self, model, env):
         self.model = model
         self.env = env
@@ -74,13 +76,20 @@ class LLMAgent:
                 \"current_goal_location\": \"your current goal location in the format (y, x)\"
             }}
 
-            Example: {{
-                \"location\": \"(2, 0)\",
+            EXAMPLE
+            Current location of agent is (2, 1),
+            need to find the cheese while avoiding the SHOCK which is on (2, 0) and named LEFT, 
+            the CHEESE is on the reward location named RIGHT located on (2, 3),
+            agent need to perform an action named RIGHT which will move RIGHT on the grid to next_location which is on (2, 2).
+
+            The output should be: {{
+                \"location\": \"(2, 1)\",
                 \"action\": \"RIGHT\",
-                \"next_location\": \"(2, 1)\",
+                \"next_location\": \"(2, 2)\",
                 \"current_location_name\": \"(2, 1) or cue_1 or cue_2 or cheese or shock\",
                 \"next_location_name\": \"(2, 2) or cue_1 or cue_2 or cheese or shock\",
-                \"current_goal_location\": \"(2, 2)\"
+                \"shock_location\": \"(2, 0)\",
+                \"cheese_location\": \"(2, 3)\"
             }}
         """
         self.action_parser = RegexParser(
@@ -116,19 +125,22 @@ class LLMAgent:
         if llm_obs['location'] == str(self.env.cue_1_location):
             self.message_history.append(SystemMessage(content='WHAT IS CUE 2 NAME?'))
             obs_message = f"These are cue_2_locations: {{\"L1\": {self.env.cue_2_locations[0]}, \"L2\": {self.env.cue_2_locations[1]}, \"L3\": {self.env.cue_2_locations[2]}, \"L4\": {self.env.cue_2_locations[3]}}} and cue_2 is {self.env.cue_1_obs}. Keep Infering until reaching CUE 2"
-
-            print("self.env.cue_1_obs: ", type(str(self.env.cue_1_obs)))
-            print("self.env.cue_1_obs: ", str(self.env.cue_1_obs))
-            
-            # print("llm_obs['location']: ", type(llm_obs['location']))
-            # print("llm_obs['location']: ", llm_obs['location'])
-
-            print("HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: ", llm_obs['location'] == str(self.env.cue_2_location))
-
+            print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: obs message', obs_message)
 
         if llm_obs['location'] == str(self.env.cue_2_location):
             self.message_history.append(SystemMessage(content='WHAT IS REWARD CONDITION?'))
-            obs_message = f"These are reward_conditions: {self.env.reward_conditions} which is located at {self.env.reward_locations} and reward condition is {self.env.reward_condition}. Keep Infering until reaching the reward condition"
+            obs_message = f"These are reward locations: {{\"{self.env.reward_conditions[0]}\": {self.env.reward_locations[0]}, \"{self.env.reward_conditions[1]}\": {self.env.cue_2_locations[1]}}} and REWARD_CONDITION is {self.env.cue_2_obs}. Keep Infering until reaching the REWARD CONDITION"
+            print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: obs message', obs_message)
+
+        # CHECK IF LLM CAN UNDERSTAND OR NOT
+        if llm_obs['location'] == str(self.env.prev_reward_location):
+            print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: start - self.env.start', self.env.start)
+            if self.env.reward_obs == 'SHOCK':    
+                self.message_history.append(SystemMessage(content='EXPERIMENT FAILED'))
+            else:
+                self.message_history.append(SystemMessage(content='EXPERIMENT SUCCESS'))
+            obs_message = f"Try new experiment with new starting position which is {self.env.start}"
+            print('obs_message: ', obs_message)
 
         self.message_history.append(HumanMessage(content=obs_message))
 

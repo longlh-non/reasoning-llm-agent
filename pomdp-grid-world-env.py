@@ -31,15 +31,23 @@ class Button:
 
 
 class POMDPGridWorldEnv(gym.Env):
-    def __init__(self, is_using_llm=True, cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)]  , reward_locations=[(1, 5), (3, 5)], reward_condition='TOP'):
+    def __init__(self, is_using_llm=True, start_pos=(1, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = True, is_random_reward = True, is_reward_horizontal = False):
         super(POMDPGridWorldEnv, self).__init__()
-        # Initialize the agent's position randomly
+
         self.row = np.random.randint(6, 10)
         self.collumn = np.random.randint(6, 10)
         self.grid_world_dimension = (self.row, self.collumn)
 
-        self.agent_pos = np.random.randint(0, self.row), np.random.randint(0, self.collumn)
-        # self.start = self.agent_pos
+        # Initialize the agent's position randomly
+        self.is_random_start = is_random_start
+
+        self.start = start_pos
+
+        if self.is_random_start:
+            self.start = np.random.randint(0, self.row), np.random.randint(0, self.collumn)
+
+        self.agent_pos = self.start
+        self.agent_action = 'STAY'
 
         self.cue_1_location = cue_1_location
         self.cue_1_obs = 'Null'
@@ -51,8 +59,14 @@ class POMDPGridWorldEnv(gym.Env):
         self.cue_2_obs = 'Null'
         self.is_cue_2_reached = False
 
-        self.is_reward_horizontal = random.choice([True, False])
-        self.reward_condition = reward_condition
+        self.is_random_reward = is_random_reward
+        self.is_reward_horizontal = is_reward_horizontal
+        self.reward_conditions = reward_conditions
+        self.reward_locations = reward_locations
+        self.reward_location = (0, 0)
+        self.is_reward_horizontal = False 
+        self.reward_obs = 'Null'
+        self.prev_reward_location = (0, 0)
 
         if is_list_of_tuples(cue_2_locations) and len(cue_2_locations) == 4:
             self.cue_2_locations = cue_2_locations
@@ -67,16 +81,16 @@ class POMDPGridWorldEnv(gym.Env):
 
         self.environment_setup = {
             "grid_world_dimension": self.grid_world_dimension,
-            # "start": self.start,
+            "start": self.start,
             "cue_1_location": self.cue_1_location
         }
         
         # Initialize pygame
         pygame.init()
         self.font = pygame.font.SysFont(None, 24)
-        self.grid_size = 600
-        self.button_height = 50
-        self.screen_size = self.grid_size + self.button_height
+        self.grid_size = 700
+        self.info_height = 50
+        self.screen_size = self.grid_size + self.info_height
         self.cell_size = self.grid_size // max(self.row, self.collumn)
         self.screen = pygame.display.set_mode((self.grid_size, self.screen_size))
         pygame.display.set_caption("POMDP Grid World")
@@ -84,14 +98,29 @@ class POMDPGridWorldEnv(gym.Env):
         # Define parameters for the POMDP
         self.reset()
 
+    def reset_agent_pos(self):
+        if self.is_random_start:
+            self.start = np.random.randint(0, self.row), np.random.randint(0, self.collumn)
+
+        self.agent_pos = self.start
+        self.cue_1_obs = 'Null'
+        self.cue_2_location = (0, 0)
+        self.cue_2_obs = 'Null'
+        self.reward_condition = 'Null'
+        self.reward_location = (0, 0)
+        self.prev_reward_location = self.reward_location
+
     def reset(self):
-        if self.is_reward_horizontal:
-            print('self.is_reward_horizontal: ', self.is_reward_horizontal)
-            self.reward_conditions = ['LEFT', 'RIGHT']
-            self.reward_locations=[(2, 2), (2, 4)]
-        else:
-            self.reward_conditions = ['TOP', 'BOTTOM']
-            self.reward_locations=[(1, 5), (3, 5)]
+        self.reset_agent_pos()
+
+        if self.is_random_reward:
+            self.is_reward_horizontal = random.choice([True, False])
+            if self.is_reward_horizontal:
+                self.reward_conditions = ['LEFT', 'RIGHT']
+                self.reward_locations = [(2, 2), (2, 4)]
+            else:
+                self.reward_conditions = ['TOP', 'BOTTOM']
+                self.reward_locations = [(1, 5), (3, 5)]
 
         random_reward = np.random.randint(0, 2)
         
@@ -102,16 +131,21 @@ class POMDPGridWorldEnv(gym.Env):
         return self._get_observation(), {}
 
     def step(self, action):
+        
+        self.agent_action = action
+
         if self.done:
             raise RuntimeError("Environment is done. Please reset it.")
         
         if self.agent_pos == self.cue_1_location and self.is_cue_1_reached != True:
             self.is_cue_1_reached = True
-            self.show_popup('cue_1')
+            # self.show_popup('cue_1')
+            self.random_obs('cue_1')
 
         if self.agent_pos == self.cue_2_location and self.is_cue_1_reached and self.is_cue_2_reached != True:
             self.is_cue_2_reached = True
-            self.show_popup('cue_2')
+            # self.show_popup('cue_2')
+            self.random_obs('cue_2')
 
         # if self.is_using_llm:
 
@@ -141,33 +175,32 @@ class POMDPGridWorldEnv(gym.Env):
         # @NOTE: here we use the same variable `reward_locations` to create both the agent's generative model (the `A` matrix) as well as the generative process.
         # This is just for simplicity, but it's not necessary -  you could have the agent believe that the Cheese/Shock are actually stored in arbitrary, incorrect locations.
         
-        reward_obs = 'Null'
+        self.reward_obs = 'Null'
 
-        if self.is_reward_horizontal:
-            print('self.is_reward_horizontal: ',self.is_reward_horizontal)
-            print('reward_locations: ', self.reward_locations)
-            if self.agent_pos == self.reward_locations[0]:
-                if self.reward_condition == 'LEFT':
-                    reward_obs = 'CHEESE'
-                else:
-                    reward_obs = 'SHOCK'
-            elif self.agent_pos == self.reward_locations[1]:
-                if self.reward_condition == 'RIGHT':
-                    reward_obs = 'CHEESE'
-                else:
-                    reward_obs = 'SHOCK'
-        else:
-            if self.agent_pos == self.reward_locations[0]:
+        if self.is_cue_2_reached:
+            if self.is_reward_horizontal:
+                if self.agent_pos == self.reward_locations[0] and self.is_cue_2_reached:
+                    if self.cue_2_obs == 'LEFT':
+                        self.reward_obs = 'CHEESE'
+                    else:
+                        self.reward_obs = 'SHOCK'
+                elif self.agent_pos == self.reward_locations[1]:
+                    if self.cue_2_obs == 'RIGHT':
+                        self.reward_obs = 'CHEESE'
+                    else:
+                        self.reward_obs = 'SHOCK'
+            else:
+                if self.agent_pos == self.reward_locations[0]:
 
-                if self.reward_condition == 'TOP':
-                    reward_obs = 'CHEESE'
-                else:
-                    reward_obs = 'SHOCK'
-            elif self.agent_pos == self.reward_locations[1]:
-                if self.reward_condition == 'BOTTOM':
-                    reward_obs = 'CHEESE'
-                else:
-                    reward_obs = 'SHOCK'        
+                    if self.cue_2_obs == 'TOP':
+                        self.reward_obs = 'CHEESE'
+                    else:
+                        self.reward_obs = 'SHOCK'
+                elif self.agent_pos == self.reward_locations[1]:
+                    if self.cue_2_obs == 'BOTTOM':
+                        self.reward_obs = 'CHEESE'
+                    else:
+                        self.reward_obs = 'SHOCK'        
 
         # current_location = self.agent_pos
         # cue_1_obs = self.cue_1_obs
@@ -175,7 +208,7 @@ class POMDPGridWorldEnv(gym.Env):
 
         # Get the new observation
         observation = self._get_observation()
-        return observation, reward_obs, self.done, {}
+        return observation, self.reward_obs, self.done, {}
 
 
     # RENDER ENVIRONMENT
@@ -246,85 +279,48 @@ class POMDPGridWorldEnv(gym.Env):
         self.screen.blit(agent_text_surface, agent_text_rect)
 
         # ADD AN INFORMATION LINE AT THE BOTTOM OF THE POP UP
-        # ANNOUNCE IF REACHING THE FINAL GOAL (SPECIFY THAT IT'S CHEESE OR SHOCK)        
+        info_text_surface = self.font.render(f"Current location: {self.agent_pos}, Action: {self.agent_action}, Cue 2: {self.cue_1_obs} - {self.cue_2_location}, Reward condition: {self.cue_2_obs} - {self.reward_location}", True, (0, 0, 0))
+        info_x = 10  # Padding from the left edge
+        info_y = self.screen_size - self.info_height + 10  # Positioned at the bottom within the info area
+        self.screen.blit(info_text_surface, (info_x, info_y))
+
+        # ANNOUNCE IF REACHING THE FINAL GOAL (SPECIFY THAT IT'S CHEESE OR SHOCK)
+        
+        if (self.reward_obs != 'Null'):
+            self.show_reward_popup()
+            self.reset()        
+        
         # CHANGE THE COLORS
 
         pygame.display.flip()
 
-    def show_popup(self, type):
-        popup_running = True
-        popup_width = 400
-        popup_height = 300
-        popup_surface = pygame.Surface((popup_width, popup_height))
-        popup_surface.fill((166, 130, 80))
+    def random_obs(self, type):
         if type == 'cue_1':
-            BUTTON_LABELS = self.cue_2_loc_names
-        elif type == 'cue_2':
-            BUTTON_LABELS = self.reward_conditions
+            rand_idx = np.random.randint(4)
+            self.cue_1_obs = self.cue_2_loc_names[rand_idx]
+            self.cue_2_location = self.cue_2_locations[rand_idx]
+        else:
+            rand_idx = np.random.randint(2)
+            self.cue_2_obs = self.reward_conditions[rand_idx]
+            self.reward_location = self.reward_locations[rand_idx]
 
-        num_buttons = len(BUTTON_LABELS)
-        # total_buttons_width = num_buttons * BUTTON_WIDTH + (num_buttons - 1) * BUTTON_SPACING
-        total_button_width = num_buttons * BUTTON_WIDTH + (num_buttons - 1) * 5
-
-        start_x = popup_width - total_button_width*5//6  # Centering buttons horizontally
-        start_y = (popup_height - BUTTON_HEIGHT)  # Centering buttons vertically
-
-        buttons = [
-            Button(start_x + i * (BUTTON_WIDTH + BUTTON_SPACING), start_y, BUTTON_WIDTH, BUTTON_HEIGHT, (255, 150, 3), BUTTON_LABELS[i], self.font)
-            for i in range(len(BUTTON_LABELS))
-        ]
+    def show_reward_popup(self):
+        popup_width = 300
+        popup_height = 200
+        popup_surface = pygame.Surface((popup_width, popup_height))
+        popup_surface.fill((111, 173, 128))
+        BUTTON_LABELS = self.reward_obs
 
         # Calculate center position for the popup
-        center_x = (SCREEN_WIDTH - popup_width) // 2
-        center_y = (SCREEN_HEIGHT - popup_height) // 2
-        
-        while popup_running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+        center_x = (self.screen_size - popup_width) // 2
+        center_y = (self.screen_size - popup_height) // 2
 
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:  # Left mouse button
-                        pos = pygame.mouse.get_pos()
-                        for button in buttons:
-                            if button.is_clicked(pos):
-                                print(f'{button.label} clicked!')
-                                self.handle_btn_event(button.label)
-                                popup_running = False
-                                break
+        text_surface = self.font.render(BUTTON_LABELS, True, (0, 0, 0))
+        text_rect = text_surface.get_rect(center=(popup_width//2, popup_height//2))
+        popup_surface.blit(text_surface, text_rect)
 
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        popup_running = False
-
-            self.screen.blit(popup_surface, (center_x//2, center_y))
-
-            for button in buttons:
-                button.draw(self.screen)
-
-            pygame.display.flip()
-
-    def handle_btn_event(self, label):
-        # Define actions based on button label
-        if label == 'L1':
-            self.cue_1_obs = 'L1'
-            self.cue_2_location = self.cue_2_locations[0]
-        elif label == 'L2':
-            self.cue_1_obs = 'L2'
-            self.cue_2_location = self.cue_2_locations[1]
-        elif label == 'L3':
-            self.cue_1_obs = 'L3'
-            self.cue_2_location = self.cue_2_locations[2]
-        elif label == 'L4':
-            self.cue_1_obs = 'L4'
-            self.cue_2_location = self.cue_2_locations[3]
-        if label == 'LEFT' or label == 'TOP':
-            self.cue_2_obs = label
-            self.reward_condition = self.reward_locations[0]
-        elif label == 'RIGHT' or label == 'BOTTOM':
-            self.cue_2_obs = label
-            self.reward_condition = self.reward_locations[1]
+        self.screen.blit(popup_surface, (center_x//2, center_y//2))
+        pygame.display.flip()
 
     def close(self):
         pass
