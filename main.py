@@ -10,7 +10,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.agents import AgentExecutor, create_react_agent, Tool
 from langchain.agents.format_scratchpad import format_to_openai_function_messages
 from typing import List
-from LLMAgent import ReasoningTool, LLMAgent
+from LLMAgent import LLMAgent
 from utils import parse
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -66,13 +66,13 @@ def run_environment():
                     done = True
                 else:         
                     agent_response = agent.act()
-                    observation, reward_obs, done, info = env.step({'action': agent_response['action'], 'agent_pos': agent_response['location'], 'infering_times': infering_times})
+                    observation, reward_obs, done, info = env.step({'next_action': agent_response['next_action'], 'action_reason': agent_response['action_reason'], 'position': agent_response['position'], 'next_position': agent_response['next_position'], 'infering_times': infering_times})
                     agent_response['reset'] = info['reset']
                     obs_message = agent.observe(llm_obs=agent_response, obs = observation)
                     print("infering_times: ", infering_times)
                     print(f"event.type at infering_time {infering_times}: {event.type}")
                     print('agent_response: ', agent_response)
-                    print(f"Action: {agent_response['action']}")
+                    print(f"Action: {agent_response['next_action']}")
                     
                     env.render()
                     # print(f"Observation: {observation}, Action: {agent_response['action']}, Reward: {reward_obs}, Done: {done}")

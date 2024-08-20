@@ -8,25 +8,6 @@ from langchain.schema import (
 )
 import json
 
-# Define a simple reasoning tool
-class ReasoningTool(BaseTool):
-    name = "Reasoning"
-    description = "Performs reasoning process to infer the next action."
-
-    def _run(self, query: str) -> str:
-        # Simulate some reasoning based on the query
-        try:
-            # Here, the reasoning could be as simple or complex as necessary
-            # This is just a placeholder for the actual reasoning logic
-            return f"Based on the query: {query}, let's take action X."
-        except Exception as e:
-            return str(e)
-
-    async def _arun(self, query: str) -> str:
-        # For async version (if needed)
-        pass
-
-
 class LLMAgent:
     @classmethod
     def get_docs(cls, env):
@@ -70,10 +51,10 @@ class LLMAgent:
 
             Return only the JSON object with no additional text or formatting:
             {{
-                \"location\": \"(y, x) which is current agent position\",
-                \"action\": \"You should inference for the next action. Remember to compare your current location and the location of cue_1, cue_2, cheese and shock given by Human. Then, tell the user about the next action - MOVE_LEFT, MOVE_RIGHT, MOVE_UP, MOVE_DOWN, STAY))\",
+                \"position\": \"(y, x) which is current agent position\",
+                \"next_action\": \"You should inference for the next action. Remember to compare your current location and the location of cue_1, cue_2, cheese and shock given by Human. Then, tell the user about the next action - MOVE_LEFT, MOVE_RIGHT, MOVE_UP, MOVE_DOWN, STAY))\",
                 \"action_reason\": \"explain why you perform above ation and also compare the location of cue_1, cue_2, cheese and shock given by Human to verify the explaination you gave\",
-                \"next_location\": \"(y, x) which is next agent position\",
+                \"next_position\": \"(y, x) which is next agent position after reasoning and performing the next_action \",
                 \"cheese_location\": \"the location of cheese in format (y, x) or Null if you don't know where it is\",
                 \"shock_location\": \"the location of shock in format (y, x) or Null if you don't know where it is\",
             }}
@@ -88,10 +69,10 @@ class LLMAgent:
                 You need to infering and reach CHEESE on (2, 0) while avoiding SHOCK on (2, 3).
 
                 The output should be: {{
-                    \"location\": \"(1, 4)\",
-                    \"action\": \"MOVE_DOWN\",
+                    \"position\": \"(1, 4)\",
+                    \"next_action\": \"MOVE_DOWN\",
                     \"action_reason\": \"Because cue_1 is on (2, 1), perform MOVE_DOWN to move downward one cell to have the same horizontal axe with cue_1 (2, 4)\",
-                    \"next_location\": \"(2, 4)\",
+                    \"next_position\": \"(2, 4)\",
                     \"cheese_location\": \"(2, 0)\"
                     \"shock_location\": \"(2, 3)\",
                 }}
@@ -102,6 +83,7 @@ class LLMAgent:
 
         self.message_history = []
         self.ret = 0
+        self.log_file = "chat_history.txt"
 
     def random_action(self):
         action = self.env.action_space.sample()
@@ -111,6 +93,17 @@ class LLMAgent:
         self.message_history = [
             SystemMessage(content=self.instructions),
         ]
+        self.reset_log_file()
+        self.log_conversation(self.instructions)
+
+    def reset_log_file(self):
+        with open(self.log_file, 'w') as file:
+            file.write("Conversation Log\n")
+    
+    def log_conversation(self, obs_msg):
+        with open(self.log_file, 'a') as file:
+            log_entry = f"{obs_msg}\n"
+            file.write(log_entry)
 
     def observe(self, llm_obs, obs, rew=0, term=False, trunc=False, info=None):
         self.ret += rew
@@ -128,20 +121,21 @@ class LLMAgent:
         else:
             obs_message = 'KEEP INFERING'
 
-            if llm_obs['location'] == str(self.env.cue_1_location):
+            if llm_obs['position'] == str(self.env.cue_1_location):
                 self.message_history.append(SystemMessage(content='WHAT IS CUE 2 NAME?'))
                 obs_message = f"These are cue 2 possible locations: {{\"L1\": {self.env.cue_2_locations[0]}, \"L2\": {self.env.cue_2_locations[1]}, \"L3\": {self.env.cue_2_locations[2]}, \"L4\": {self.env.cue_2_locations[3]}}} and the one specified as cue_2 is {self.env.cue_1_obs}, the other locations are empty now. Keep Infering until reaching {self.env.cue_1_obs}"
                 print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: obs message', obs_message)
 
-            if llm_obs['location'] == str(self.env.cue_2_location):
+            if llm_obs['position'] == str(self.env.cue_2_location):
                 self.message_history.append(SystemMessage(content='WHAT IS REWARD CONDITION?'))
                 obs_message = f"These are possible reward locations: {{\"{self.env.reward_conditions[0]}\": {self.env.reward_locations[0]}, \"{self.env.reward_conditions[1]}\": {self.env.cue_2_locations[1]}}} and the CHEESE is {self.env.cue_2_obs} so that the SHOCK is the other one in possible reward locations is SHOCK. Keep Infering until reaching the CHEESE and try to avoid the SHOCK"
                 print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: obs message', obs_message)
 
             self.message_history.append(HumanMessage(content=obs_message))
-
+            self.log_conversation(obs_message)
+            
             # CHECK IF LLM CAN UNDERSTAND OR NOT
-            if llm_obs['location'] == str(self.env.prev_reward_location):
+            if llm_obs['position'] == str(self.env.prev_reward_location):
                 if self.env.reward_obs == 'SHOCK':    
                     self.message_history.append(SystemMessage(content='EXPERIMENT FAILED'))
                 else:
@@ -154,6 +148,7 @@ class LLMAgent:
     
     def _act(self):
         result_message = self.model.invoke(self.message_history)
+        self.log_conversation(result_message)
         self.message_history.append(result_message.content)
         # action = int(self.action_parser.parse(act_message.content)["action"])
         agent_response = json.loads(result_message.content)

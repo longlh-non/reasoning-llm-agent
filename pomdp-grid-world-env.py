@@ -81,6 +81,8 @@ class POMDPGridWorldEnv(gym.Env):
         self.done = False
         self.is_using_llm = is_using_llm
 
+        self.result = 'Null'
+
         self.environment_setup = {
             "grid_world_dimension": self.grid_world_dimension,
             "start": self.start,
@@ -144,15 +146,14 @@ class POMDPGridWorldEnv(gym.Env):
         with open(self.log_file, 'w') as file:
             file.write("Agent Movement Log\n")
     
-    def log_agent_movement(self, step_count, action, position):
+    def log_agent_movement(self, step_count, next_action, action_reason, next_position, position, result):
         with open(self.log_file, 'a') as file:
-            log_entry = f"Step {step_count}: Action - {action}, Position - {position}\n"
+            log_entry = f"Step {step_count}: Position - {position} -  Next action - {next_action}, Next position - {next_position}, Reason - {action_reason} , Result - {self.result}\n"
             file.write(log_entry)
 
     def step(self, action): 
-        print('action: ', action)
+        print('response: ', action)
         print('infering_times: ', action['infering_times'])
-        print('agent_pos: ', action['agent_pos'])
         reset = False
 
         if action['infering_times'] == 1:
@@ -164,8 +165,8 @@ class POMDPGridWorldEnv(gym.Env):
             self.reset()
 
         else:
-            self.agent_action = action['action']
-            self.agent_pos = eval(action['agent_pos'])
+            self.agent_action = action['next_action']
+            self.agent_pos = eval(action['position'])
             # if self.done:
             #     raise RuntimeError("Environment is done. Please reset it.")
             
@@ -241,7 +242,7 @@ class POMDPGridWorldEnv(gym.Env):
         observation = self._get_observation()
 
         # Log the agent's movement after the step
-        self.log_agent_movement(self.current_step, action['action'], self.agent_pos)
+        self.log_agent_movement(self.current_step, next_position = action['next_position'], next_action = action['next_action'], action_reason = action['action_reason'], position = self.agent_pos, result = self.result)
         
         # Increment the step counter
         self.current_step += 1

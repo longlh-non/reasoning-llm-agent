@@ -1,0 +1,81 @@
+Conversation Log
+
+            You are an agent navigating a grid world of dimension (6, 8) to find a CHEESE and avoiding a SHOCK. The location in the grid world should be encoded into (y, x) coordinators where START is the starting location of yours.
+            
+            You should visualize the grid world as a matrix.
+            
+            One location in the grid world contains a cue: CUE 1. 
+            There will be four additional locations that will serve as possible locations for a second cue: CUE 2. 
+            Crucially, only one of these four additional locations will actually contain CUE 2 - the other 3 will be empty. When you visit CUE 1 by moving to its location, one of four signals is presented, which each unambiguously signals which of the 4 possible locations CUE 2 occupies -- you can refer to these Cue-2-location-signals with obvious names: L1, L2, L3, L4.
+            Once CUE 2's location has been revealed, by visiting that location the agent will then receive one of two possible signals that indicate where the hidden reward is located (and conversely, where the hidden punishment lies).
+
+            These two possible types of REWARD CONDITIONS which are reward/punishment locations are indicated by two locations and we have 2 ways to define this: 
+            - [TOP, BOTTOM]: "TOP" (meaning the CHEESE reward is on the upper of the two locations and SHOCK punishment is on the lower one) or "BOTTOM" (meaning the CHEESE reward is on the lower of the two locations and SHOCK punishment is on the upper one).
+            - [LEFT, RIGHT]: "LEFT" (meaning the CHEESE reward is on the lefter of the two locations and SHOCK punishment is on the righter one) or "RIGHT" (meaning the CHEESE reward is on the righter of the two locations and SHOCK punishment is on the lefter one).
+
+            These are the actions you can only do: MOVE_UP meaning you will move upward one cell, MOVE_DOWN meaning you will move upward one cell, MOVE_LEFT meaning you will move left one cell, MOVE_RIGHT meaning you will move right one cell, STAY meaning you stay at current cell and you can only perform and move one cell per state.
+
+            If you reach CUE 1, the next action should be STAY and CUE 2 signals will be revealed from 4 given ones which are L1, L2, L3, L4 by Human message.
+
+            Afterward, the next goal is to reach CUE 2 location.
+            
+            If you reach CUE 2, the next action should be STAY and the REWARD CONDITION will be revealed by Human message.
+
+            Afterward, the next goal is to reach CHEESE's location meanwhile avoid SHOCK's location.
+            
+            ENVIRONMENT SET UP: {'grid_world_dimension': (6, 8), 'start': (1, 0), 'cue_1_location': (2, 0)}
+
+            Your current location is (1, 0).
+
+            Based on the above information, decide the next action to take.
+
+            Return only the JSON object with no additional text or formatting:
+            {
+                "position": "(y, x) which is current agent position",
+                "next_action": "You should inference for the next action. Remember to compare your current location and the location of cue_1, cue_2, cheese and shock given by Human. Then, tell the user about the next action - MOVE_LEFT, MOVE_RIGHT, MOVE_UP, MOVE_DOWN, STAY))",
+                "action_reason": "explain why you perform above ation and also compare the location of cue_1, cue_2, cheese and shock given by Human to verify the explaination you gave",
+                "next_position": "(y, x) which is next agent position after reasoning and performing the next_action ",
+                "cheese_location": "the location of cheese in format (y, x) or Null if you don't know where it is",
+                "shock_location": "the location of shock in format (y, x) or Null if you don't know where it is",
+            }
+
+            FOLLOW THIS INSTRUCTION AS AN EXAMPLE ONLY, YOU HAVE TO USE THE INFORMATION COMES FROM ENVIRONMENT SETUP AND HUMAN MESSAGE:
+                The Grid world Dimension is: (6, 8)
+                Current location of agent is (1, 4),
+                You have to inference to move to the location of CUE 1 at (2, 1). 
+                Then there are four additional locations that will serve as possible locations for CUE 2 which are {"L1"\: (1, 3), "L2"\: (2, 4), "L3"\: (4, 4), "L4"\: (5, 3)}.
+                The one is revealed are L3 and need to reach it.
+                After reaching it, there are new informations which are reward conditions named which are {"LEFT"\: (2, 0), "RIGHT"\: (2, 3)} and the one is revealed as CHEESE is LEFT so that RIGHT is SHOCK.
+                You need to infering and reach CHEESE on (2, 0) while avoiding SHOCK on (2, 3).
+
+                The output should be: {
+                    "position": "(1, 4)",
+                    "next_action": "MOVE_DOWN",
+                    "action_reason": "Because cue_1 is on (2, 1), perform MOVE_DOWN to move downward one cell to have the same horizontal axe with cue_1 (2, 4)",
+                    "next_position": "(2, 4)",
+                    "cheese_location": "(2, 0)"
+                    "shock_location": "(2, 3)",
+                }
+        
+content='{\n    "position": "(1, 0)",\n    "next_action": "MOVE_DOWN",\n    "action_reason": "Because CUE 1 is located at (2, 0) and I am currently at (1, 0), I need to perform MOVE_DOWN to reach CUE 1\'s location.",\n    "next_position": "(2, 0)",\n    "cheese_location": "Null",\n    "shock_location": "Null"\n}' additional_kwargs={'parsed': None, 'refusal': None} response_metadata={'token_usage': {'completion_tokens': 95, 'prompt_tokens': 1228, 'total_tokens': 1323}, 'model_name': 'gpt-4o-mini-2024-07-18', 'system_fingerprint': 'fp_48196bc67a', 'finish_reason': 'stop', 'logprobs': None} id='run-22722837-92a1-4d32-95a5-eca93f571429-0' usage_metadata={'input_tokens': 1228, 'output_tokens': 95, 'total_tokens': 1323}
+KEEP INFERING
+content='{\n    "position": "(2, 0)",\n    "next_action": "STAY",\n    "action_reason": "I have reached CUE 1 at (2, 0). According to the instructions, the next action should be STAY to reveal the signal for CUE 2\'s location.",\n    "next_position": "(2, 0)",\n    "cheese_location": "Null",\n    "shock_location": "Null"\n}' additional_kwargs={'parsed': None, 'refusal': None} response_metadata={'token_usage': {'completion_tokens': 93, 'prompt_tokens': 1335, 'total_tokens': 1428}, 'model_name': 'gpt-4o-mini-2024-07-18', 'system_fingerprint': 'fp_48196bc67a', 'finish_reason': 'stop', 'logprobs': None} id='run-c6cfa0a6-8fd4-4d65-bf18-2df5be5a7e39-0' usage_metadata={'input_tokens': 1335, 'output_tokens': 93, 'total_tokens': 1428}
+These are cue 2 possible locations: {"L1": (0, 2), "L2": (1, 3), "L3": (3, 3), "L4": (4, 2)} and the one specified as cue_2 is L4, the other locations are empty now. Keep Infering until reaching L4
+content='{\n    "position": "(2, 0)",\n    "next_action": "MOVE_DOWN",\n    "action_reason": "I need to move towards CUE 2 which is located at L4 (4, 2). Since I am currently at (2, 0), moving down to (3, 0) will get me closer to the row of CUE 2.",\n    "next_position": "(3, 0)",\n    "cheese_location": "Null",\n    "shock_location": "Null"\n}' additional_kwargs={'parsed': None, 'refusal': None} response_metadata={'token_usage': {'completion_tokens': 109, 'prompt_tokens': 1522, 'total_tokens': 1631}, 'model_name': 'gpt-4o-mini-2024-07-18', 'system_fingerprint': 'fp_48196bc67a', 'finish_reason': 'stop', 'logprobs': None} id='run-b1b91201-f364-4571-9bac-af72cc191655-0' usage_metadata={'input_tokens': 1522, 'output_tokens': 109, 'total_tokens': 1631}
+These are cue 2 possible locations: {"L1": (0, 2), "L2": (1, 3), "L3": (3, 3), "L4": (4, 2)} and the one specified as cue_2 is L4, the other locations are empty now. Keep Infering until reaching L4
+content='{\n    "position": "(3, 0)",\n    "next_action": "MOVE_RIGHT",\n    "action_reason": "I need to move towards CUE 2 which is located at L4 (4, 2). Moving right to (3, 1) will get me closer to the column of CUE 2.",\n    "next_position": "(3, 1)",\n    "cheese_location": "Null",\n    "shock_location": "Null"\n}' additional_kwargs={'parsed': None, 'refusal': None} response_metadata={'token_usage': {'completion_tokens': 98, 'prompt_tokens': 1725, 'total_tokens': 1823}, 'model_name': 'gpt-4o-mini-2024-07-18', 'system_fingerprint': 'fp_48196bc67a', 'finish_reason': 'stop', 'logprobs': None} id='run-bba6ccaa-ea1a-46f5-9588-9772c029319e-0' usage_metadata={'input_tokens': 1725, 'output_tokens': 98, 'total_tokens': 1823}
+KEEP INFERING
+content='{\n    "position": "(3, 1)",\n    "next_action": "MOVE_RIGHT",\n    "action_reason": "I need to continue moving towards CUE 2 which is located at L4 (4, 2). Moving right to (3, 2) will bring me closer to the column of CUE 2.",\n    "next_position": "(3, 2)",\n    "cheese_location": "Null",\n    "shock_location": "Null"\n}' additional_kwargs={'parsed': None, 'refusal': None} response_metadata={'token_usage': {'completion_tokens': 99, 'prompt_tokens': 1835, 'total_tokens': 1934}, 'model_name': 'gpt-4o-mini-2024-07-18', 'system_fingerprint': 'fp_48196bc67a', 'finish_reason': 'stop', 'logprobs': None} id='run-53d03f09-5788-4d2f-a587-ac68ecce4b87-0' usage_metadata={'input_tokens': 1835, 'output_tokens': 99, 'total_tokens': 1934}
+KEEP INFERING
+content='{\n    "position": "(3, 2)",\n    "next_action": "MOVE_DOWN",\n    "action_reason": "I need to move towards CUE 2 which is located at L4 (4, 2). Moving down to (4, 2) will take me directly to the location of CUE 2.",\n    "next_position": "(4, 2)",\n    "cheese_location": "Null",\n    "shock_location": "Null"\n}' additional_kwargs={'parsed': None, 'refusal': None} response_metadata={'token_usage': {'completion_tokens': 98, 'prompt_tokens': 1946, 'total_tokens': 2044}, 'model_name': 'gpt-4o-mini-2024-07-18', 'system_fingerprint': 'fp_48196bc67a', 'finish_reason': 'stop', 'logprobs': None} id='run-8b45d39c-0a0a-4cb8-828b-047c50ceb8b5-0' usage_metadata={'input_tokens': 1946, 'output_tokens': 98, 'total_tokens': 2044}
+KEEP INFERING
+content='{\n    "position": "(4, 2)",\n    "next_action": "STAY",\n    "action_reason": "I have reached CUE 2 at (4, 2). According to the instructions, the next action should be STAY to reveal the REWARD CONDITION.",\n    "next_position": "(4, 2)",\n    "cheese_location": "Null",\n    "shock_location": "Null"\n}' additional_kwargs={'parsed': None, 'refusal': None} response_metadata={'token_usage': {'completion_tokens': 88, 'prompt_tokens': 2056, 'total_tokens': 2144}, 'model_name': 'gpt-4o-mini-2024-07-18', 'system_fingerprint': 'fp_48196bc67a', 'finish_reason': 'stop', 'logprobs': None} id='run-7cae1ee1-cad9-4a67-ab36-fe4cf1d3f1be-0' usage_metadata={'input_tokens': 2056, 'output_tokens': 88, 'total_tokens': 2144}
+KEEP INFERING
+content='{\n    "position": "(4, 2)",\n    "next_action": "STAY",\n    "action_reason": "I have reached CUE 2 at (4, 2). According to the instructions, the next action should be STAY to reveal the REWARD CONDITION.",\n    "next_position": "(4, 2)",\n    "cheese_location": "Null",\n    "shock_location": "Null"\n}' additional_kwargs={'parsed': None, 'refusal': None} response_metadata={'token_usage': {'completion_tokens': 88, 'prompt_tokens': 2156, 'total_tokens': 2244}, 'model_name': 'gpt-4o-mini-2024-07-18', 'system_fingerprint': 'fp_507c9469a1', 'finish_reason': 'stop', 'logprobs': None} id='run-660f5d3a-fb5c-43ec-a668-9355dc7dbf94-0' usage_metadata={'input_tokens': 2156, 'output_tokens': 88, 'total_tokens': 2244}
+KEEP INFERING
+content='{"position": "(4, 2)","next_action": "STAY","action_reason": "I have already indicated that I am at CUE 2, and according to the instructions, my next action should still be STAY to reveal the REWARD CONDITION.","next_position": "(4, 2)","cheese_location": "Null","shock_location": "Null"}' additional_kwargs={'parsed': None, 'refusal': None} response_metadata={'token_usage': {'completion_tokens': 78, 'prompt_tokens': 2256, 'total_tokens': 2334}, 'model_name': 'gpt-4o-mini-2024-07-18', 'system_fingerprint': 'fp_507c9469a1', 'finish_reason': 'stop', 'logprobs': None} id='run-e5be1c36-ce9e-4cbe-bb76-b3db82eb56a6-0' usage_metadata={'input_tokens': 2256, 'output_tokens': 78, 'total_tokens': 2334}
+KEEP INFERING
+content='{\n    "position": "(4, 2)",\n    "next_action": "STAY",\n    "action_reason": "I am still at CUE 2 (4, 2) and need to wait for the reward condition to be revealed. Following the instructions, the next action should be STAY.",\n    "next_position": "(4, 2)",\n    "cheese_location": "Null",\n    "shock_location": "Null"\n}' additional_kwargs={'parsed': None, 'refusal': None} response_metadata={'token_usage': {'completion_tokens': 93, 'prompt_tokens': 2346, 'total_tokens': 2439}, 'model_name': 'gpt-4o-mini-2024-07-18', 'system_fingerprint': 'fp_48196bc67a', 'finish_reason': 'stop', 'logprobs': None} id='run-f5645cee-6522-4962-b97a-2a1b9cd28e4c-0' usage_metadata={'input_tokens': 2346, 'output_tokens': 93, 'total_tokens': 2439}
+KEEP INFERING
+content='{"position": "(4, 2)","next_action": "STAY","action_reason": "I have reached CUE 2 at (4, 2) and I am waiting for the REWARD CONDITION to be revealed. According to the instructions, the next action must still be STAY until I receive the necessary information about the CHEESE and SHOCK locations.","next_position": "(4, 2)","cheese_location": "Null","shock_location": "Null"}' additional_kwargs={'parsed': None, 'refusal': None} response_metadata={'token_usage': {'completion_tokens': 100, 'prompt_tokens': 2451, 'total_tokens': 2551}, 'model_name': 'gpt-4o-mini-2024-07-18', 'system_fingerprint': 'fp_48196bc67a', 'finish_reason': 'stop', 'logprobs': None} id='run-06fd466d-2761-4ab5-967b-734ab9704f60-0' usage_metadata={'input_tokens': 2451, 'output_tokens': 100, 'total_tokens': 2551}
+KEEP INFERING
