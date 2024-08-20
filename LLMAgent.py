@@ -40,7 +40,9 @@ class LLMAgent:
         self.docs = self.get_docs(env)
         self.instructions = f"""
             You are an agent navigating a grid world of dimension {env.grid_world_dimension} to find a CHEESE and avoiding a SHOCK. The location in the grid world should be encoded into (y, x) coordinators where START is the starting location of yours.
+            
             You should visualize the grid world as a matrix.
+            
             One location in the grid world contains a cue: CUE 1. 
             There will be four additional locations that will serve as possible locations for a second cue: CUE 2. 
             Crucially, only one of these four additional locations will actually contain CUE 2 - the other 3 will be empty. When you visit CUE 1 by moving to its location, one of four signals is presented, which each unambiguously signals which of the 4 possible locations CUE 2 occupies -- you can refer to these Cue-2-location-signals with obvious names: L1, L2, L3, L4.
@@ -69,10 +71,9 @@ class LLMAgent:
             Return only the JSON object with no additional text or formatting:
             {{
                 \"location\": \"(y, x) which is current agent position\",
-                \"action\": \"You should inference for the next action. Remember to compare your current location and the location of cue_1, cue_2, cheese and shock. Then, tell the user about the next action - MOVE_LEFT, MOVE_RIGHT, MOVE_UP, MOVE_DOWN, STAY))\",
-                \"action_reason\": \"explain why you perform above ation and also give the location of cue_1, cue_2, cheese and shock to verify the explaination you gave\",
+                \"action\": \"You should inference for the next action. Remember to compare your current location and the location of cue_1, cue_2, cheese and shock given by Human. Then, tell the user about the next action - MOVE_LEFT, MOVE_RIGHT, MOVE_UP, MOVE_DOWN, STAY))\",
+                \"action_reason\": \"explain why you perform above ation and also compare the location of cue_1, cue_2, cheese and shock given by Human to verify the explaination you gave\",
                 \"next_location\": \"(y, x) which is next agent position\",
-                \"current_goal_location\": \"your current goal location in the format (y, x)\",
                 \"cheese_location\": \"the location of cheese in format (y, x) or Null if you don't know where it is\",
                 \"shock_location\": \"the location of shock in format (y, x) or Null if you don't know where it is\",
             }}
@@ -91,7 +92,6 @@ class LLMAgent:
                     \"action\": \"MOVE_DOWN\",
                     \"action_reason\": \"Because cue_1 is on (2, 1), perform MOVE_DOWN to move downward one cell to have the same horizontal axe with cue_1 (2, 4)\",
                     \"next_location\": \"(2, 4)\",
-                    \"current_goal_location\": \"(2, 1)\",
                     \"cheese_location\": \"(2, 0)\"
                     \"shock_location\": \"(2, 3)\",
                 }}
@@ -141,10 +141,6 @@ class LLMAgent:
             self.message_history.append(HumanMessage(content=obs_message))
 
             # CHECK IF LLM CAN UNDERSTAND OR NOT
-            print("llm_obs['location'] == str(self.env.prev_reward_location: ", llm_obs['location'] == str(self.env.prev_reward_location))
-            print("llm_obs['location']: ", llm_obs['location'])
-            print("str(self.env.prev_reward_location: ", str(self.env.prev_reward_location))
-
             if llm_obs['location'] == str(self.env.prev_reward_location):
                 if self.env.reward_obs == 'SHOCK':    
                     self.message_history.append(SystemMessage(content='EXPERIMENT FAILED'))

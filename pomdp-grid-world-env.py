@@ -31,7 +31,7 @@ class Button:
 
 
 class POMDPGridWorldEnv(gym.Env):
-    def __init__(self, is_using_llm=True, start_pos=(1, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = False, is_random_reward = True, is_reward_horizontal = False):
+    def __init__(self, log_file="agent_movement_log.txt", is_using_llm=True, start_pos=(1, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = False, is_random_reward = True, is_reward_horizontal = False):
         super(POMDPGridWorldEnv, self).__init__()
 
         # self.row = np.random.randint(6, 10)
@@ -86,6 +86,9 @@ class POMDPGridWorldEnv(gym.Env):
             "start": self.start,
             "cue_1_location": self.cue_1_location
         }
+
+        # Increment the step counter
+        self.current_step = 0
         
         # Initialize pygame
         pygame.init()
@@ -96,6 +99,10 @@ class POMDPGridWorldEnv(gym.Env):
         self.cell_size = self.grid_size // max(self.row, self.collumn)
         self.screen = pygame.display.set_mode((self.grid_size, self.screen_size))
         pygame.display.set_caption("POMDP Grid World")
+
+
+        self.log_file = log_file
+        self.reset_log_file()  # Resets the log file at the start of each run
 
         # Define parameters for the POMDP
         self.reset()
@@ -113,6 +120,7 @@ class POMDPGridWorldEnv(gym.Env):
         self.path = [tuple(self.agent_pos)]  # Reset path and include the starting location
         self.is_cue_1_reached = False
         self.is_cue_2_reached = False
+        self.current_step = 0  # Reset the step count
 
     def reset(self):
         self.reset_agent_pos()
@@ -132,9 +140,19 @@ class POMDPGridWorldEnv(gym.Env):
         self.goal_pos = self.reward_locations[random_reward]
         return self._get_observation(), {}
 
+    def reset_log_file(self):
+        with open(self.log_file, 'w') as file:
+            file.write("Agent Movement Log\n")
+    
+    def log_agent_movement(self, step_count, action, position):
+        with open(self.log_file, 'a') as file:
+            log_entry = f"Step {step_count}: Action - {action}, Position - {position}\n"
+            file.write(log_entry)
+
     def step(self, action): 
         print('action: ', action)
         print('infering_times: ', action['infering_times'])
+        print('agent_pos: ', action['agent_pos'])
         reset = False
 
         if action['infering_times'] == 1:
@@ -147,7 +165,7 @@ class POMDPGridWorldEnv(gym.Env):
 
         else:
             self.agent_action = action['action']
-
+            self.agent_pos = eval(action['agent_pos'])
             # if self.done:
             #     raise RuntimeError("Environment is done. Please reset it.")
             
@@ -160,17 +178,16 @@ class POMDPGridWorldEnv(gym.Env):
                 self.random_obs('cue_2')
 
             # Define the movement
-            if self.agent_action == 0 or self.agent_action == 'MOVE_UP':  # Up
-                self.agent_pos = (max(0, self.agent_pos[0] - 1), self.agent_pos[1])
-            elif self.agent_action == 1 or self.agent_action == 'MOVE_RIGHT':  # Right
-                self.agent_pos = (self.agent_pos[0], min(self.collumn - 1, self.agent_pos[1] + 1))
-            elif self.agent_action == 2  or self.agent_action == 'MOVE_DOWN':  # Down
-                self.agent_pos = (min(self.row - 1, self.agent_pos[0] + 1), self.agent_pos[1])
-            elif self.agent_action == 3  or self.agent_action == 'MOVE_LEFT':  # Left
-                self.agent_pos = (self.agent_pos[0], max(0, self.agent_pos[1] - 1))
-            elif self.agent_action == 4  or self.agent_action == 'STAY':  # Stay
-                pass  # No change in position
-
+            # if self.agent_action == 0 or self.agent_action == 'MOVE_UP':  # Up
+            #     self.agent_pos = (max(0, self.agent_pos[0] - 1), self.agent_pos[1])
+            # elif self.agent_action == 1 or self.agent_action == 'MOVE_RIGHT':  # Right
+            #     self.agent_pos = (self.agent_pos[0], min(self.collumn - 1, self.agent_pos[1] + 1))
+            # elif self.agent_action == 2  or self.agent_action == 'MOVE_DOWN':  # Down
+            #     self.agent_pos = (min(self.row - 1, self.agent_pos[0] + 1), self.agent_pos[1])
+            # elif self.agent_action == 3  or self.agent_action == 'MOVE_LEFT':  # Left
+            #     self.agent_pos = (self.agent_pos[0], max(0, self.agent_pos[1] - 1))
+            # elif self.agent_action == 4  or self.agent_action == 'STAY':  # Stay
+            #     pass  # No change in position
 
             if tuple(self.agent_pos) not in self.path:
                 self.path.append(tuple(self.agent_pos))  # Add new position to the path
@@ -222,6 +239,12 @@ class POMDPGridWorldEnv(gym.Env):
 
             # Get the new observation
         observation = self._get_observation()
+
+        # Log the agent's movement after the step
+        self.log_agent_movement(self.current_step, action['action'], self.agent_pos)
+        
+        # Increment the step counter
+        self.current_step += 1
         return observation, self.reward_obs, self.done, {'infering_times': action['infering_times'], 'reset': reset }
 
 
@@ -341,6 +364,6 @@ class POMDPGridWorldEnv(gym.Env):
         # Observation is a noisy version of the grid state (partially observable)
         noise = np.random.normal(0, 0.1, (self.row, self.collumn))
         grid = np.zeros((self.row, self.collumn))
-        grid[self.agent_pos[0], self.agent_pos[1]] = 1
-        grid[self.goal_pos[0], self.goal_pos[1]] = 0.5
+        # grid[self.agent_pos[0], self.agent_pos[1]] = 1
+        # grid[self.goal_pos[0], self.goal_pos[1]] = 0.5
         return np.clip(grid + noise, 0, 1)
