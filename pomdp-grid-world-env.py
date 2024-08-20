@@ -111,7 +111,8 @@ class POMDPGridWorldEnv(gym.Env):
         self.prev_reward_location = self.reward_location
         self.reward_location = 'Null'
         self.path = [tuple(self.agent_pos)]  # Reset path and include the starting location
-
+        self.is_cue_1_reached = False
+        self.is_cue_2_reached = False
 
     def reset(self):
         self.reset_agent_pos()
@@ -135,6 +136,7 @@ class POMDPGridWorldEnv(gym.Env):
         print('action: ', action)
         print('infering_times: ', action['infering_times'])
         reset = False
+
         if action['infering_times'] == 1:
             self.done = False
 
@@ -158,13 +160,13 @@ class POMDPGridWorldEnv(gym.Env):
                 self.random_obs('cue_2')
 
             # Define the movement
-            if self.agent_action == 0 or self.agent_action == 'UP':  # Up
+            if self.agent_action == 0 or self.agent_action == 'MOVE_UP':  # Up
                 self.agent_pos = (max(0, self.agent_pos[0] - 1), self.agent_pos[1])
-            elif self.agent_action == 1 or self.agent_action == 'RIGHT':  # Right
+            elif self.agent_action == 1 or self.agent_action == 'MOVE_RIGHT':  # Right
                 self.agent_pos = (self.agent_pos[0], min(self.collumn - 1, self.agent_pos[1] + 1))
-            elif self.agent_action == 2  or self.agent_action == 'DOWN':  # Down
+            elif self.agent_action == 2  or self.agent_action == 'MOVE_DOWN':  # Down
                 self.agent_pos = (min(self.row - 1, self.agent_pos[0] + 1), self.agent_pos[1])
-            elif self.agent_action == 3  or self.agent_action == 'LEFT':  # Left
+            elif self.agent_action == 3  or self.agent_action == 'MOVE_LEFT':  # Left
                 self.agent_pos = (self.agent_pos[0], max(0, self.agent_pos[1] - 1))
             elif self.agent_action == 4  or self.agent_action == 'STAY':  # Stay
                 pass  # No change in position
