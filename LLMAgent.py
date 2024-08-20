@@ -52,13 +52,13 @@ class LLMAgent:
 
             These are the actions you can only do: UP, DOWN, LEFT, RIGHT, STAY and you can only perform and move one location per state.
 
-            If you reach CUE 1, the next action should be STAY and CUE 2 signals from Human.
+            If you reach CUE 1, the next action should be STAY and CUE 2 signals will be revealed from 4 given ones which are L1, L2, L3, L4 by Human message.
 
             Afterward, the next goal is to reach CUE 2 location.
             
-            If you reach CUE 2, the next action should be STAY and ask for REWARD condition from Human.
+            If you reach CUE 2, the next action should be STAY and the REWARD CONDITION will be revealed by Human message.
 
-            Afterward, the next goal is to reach REWARD condition.
+            Afterward, the next goal is to reach CHEESE's location meanwhile avoid SHOCK's location.
             
             ENVIRONMENT SET UP: {env.environment_setup}
 
@@ -71,26 +71,28 @@ class LLMAgent:
                 \"location\": \"(y, x) which is current agent position\",
                 \"action\": \"you should inference for the next action. Then, tell the user about the next action - LEFT, RIGHT, UP, DOWN, STAY))\",
                 \"next_location\": \"(y, x) which is next agent position\",
-                \"current_location_name\": \"your current location in the format (y, x) or cue_1 (if you are ons on CUE 1) or cue_2 (CUE 2 location) or cheese (if you are on cheese) or shock (shock location)\",
-                \"next_location_name\": \"your next location in the format (y, x) or cue_1 (if you are ons on CUE 1) or cue_2 (CUE 2 location) or cheese (if you are on cheese) or shock (shock location)\",
-                \"current_goal_location\": \"your current goal location in the format (y, x)\"
+                \"current_goal_location\": \"your current goal location in the format (y, x)\",
+                \"cheese_location\": \"the location of cheese in format (y, x) or Null if you don't know where it is\",
+                \"shock_location\": \"the location of shock in format (y, x) or Null if you don't know where it is\",
             }}
 
-            EXAMPLE
-            Current location of agent is (2, 1),
-            need to find the cheese while avoiding the SHOCK which is on (2, 0) and named LEFT, 
-            the CHEESE is on the reward location named RIGHT located on (2, 3),
-            agent need to perform an action named RIGHT which will move RIGHT on the grid to next_location which is on (2, 2).
+            FOLLOW THIS INSTRUCTION AS AN EXAMPLE ONLY, YOU HAVE TO USE THE INFORMATION COMES FROM ENVIRONMENT SETUP AND HUMAN MESSAGE:
+                The Grid world Dimension is: {env.grid_world_dimension}
+                Current location of agent is (1, 4),
+                You have to inference to move to the location of CUE 1 at (2, 1). 
+                Then there are four additional locations that will serve as possible locations for CUE 2 which are {{\"L1"\: (1, 3), \"L2"\: (2, 4), \"L3"\: (4, 4), \"L4"\: (5, 3)}}.
+                The one is revealed are L3 and need to reach it.
+                After reaching it, there are new informations which are reward conditions named which are {{\"LEFT"\: (2, 0), \"RIGHT"\: (2, 3)}} and the one is revealed as CHEESE is LEFT so that RIGHT is SHOCK.
+                You need to infering and reach CHEESE on (2, 0) while avoiding SHOCK on (2, 3).
 
-            The output should be: {{
-                \"location\": \"(2, 1)\",
-                \"action\": \"RIGHT\",
-                \"next_location\": \"(2, 2)\",
-                \"current_location_name\": \"(2, 1) or cue_1 or cue_2 or cheese or shock\",
-                \"next_location_name\": \"(2, 2) or cue_1 or cue_2 or cheese or shock\",
-                \"shock_location\": \"(2, 0)\",
-                \"cheese_location\": \"(2, 3)\"
-            }}
+                The output should be: {{
+                    \"location\": \"(1, 4)\",
+                    \"action\": \"DOWN\",
+                    \"next_location\": \"(2, 4)\",
+                    \"current_goal_location\": \"(2, 1)\",
+                    \"cheese_location\": \"(2, 0)\"
+                    \"shock_location\": \"(2, 3)\",
+                }}
         """
         self.action_parser = RegexParser(
             regex=r"Action: (.*)", output_keys=["action"], default_output_key="action"
@@ -119,30 +121,35 @@ class LLMAgent:
         #     Truncation: {trunc}
         #     Return: {self.ret}
         # """
+        if llm_obs['reset'] == True:
+            self.reset()
+        else:
+            obs_message = 'KEEP INFERING'
 
-        obs_message = 'KEEP INFERING'
+            if llm_obs['location'] == str(self.env.cue_1_location):
+                self.message_history.append(SystemMessage(content='WHAT IS CUE 2 NAME?'))
+                obs_message = f"These are cue_2_locations: {{\"L1\": {self.env.cue_2_locations[0]}, \"L2\": {self.env.cue_2_locations[1]}, \"L3\": {self.env.cue_2_locations[2]}, \"L4\": {self.env.cue_2_locations[3]}}} and cue_2 is {self.env.cue_1_obs}. Keep Infering until reaching {self.env.cue_1_obs}"
+                print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: obs message', obs_message)
 
-        if llm_obs['location'] == str(self.env.cue_1_location):
-            self.message_history.append(SystemMessage(content='WHAT IS CUE 2 NAME?'))
-            obs_message = f"These are cue_2_locations: {{\"L1\": {self.env.cue_2_locations[0]}, \"L2\": {self.env.cue_2_locations[1]}, \"L3\": {self.env.cue_2_locations[2]}, \"L4\": {self.env.cue_2_locations[3]}}} and cue_2 is {self.env.cue_1_obs}. Keep Infering until reaching CUE 2"
-            print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: obs message', obs_message)
+            if llm_obs['location'] == str(self.env.cue_2_location):
+                self.message_history.append(SystemMessage(content='WHAT IS REWARD CONDITION?'))
+                obs_message = f"These are reward locations: {{\"{self.env.reward_conditions[0]}\": {self.env.reward_locations[0]}, \"{self.env.reward_conditions[1]}\": {self.env.cue_2_locations[1]}}} and the CHEESE is {self.env.cue_2_obs}. Keep Infering until reaching the CHEESE and try to avoid the SHOCK"
+                print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: obs message', obs_message)
 
-        if llm_obs['location'] == str(self.env.cue_2_location):
-            self.message_history.append(SystemMessage(content='WHAT IS REWARD CONDITION?'))
-            obs_message = f"These are reward locations: {{\"{self.env.reward_conditions[0]}\": {self.env.reward_locations[0]}, \"{self.env.reward_conditions[1]}\": {self.env.cue_2_locations[1]}}} and REWARD_CONDITION is {self.env.cue_2_obs}. Keep Infering until reaching the REWARD CONDITION"
-            print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: obs message', obs_message)
+            # CHECK IF LLM CAN UNDERSTAND OR NOT
+            print("llm_obs['location'] == str(self.env.prev_reward_location: ", llm_obs['location'] == str(self.env.prev_reward_location))
+            print("llm_obs['location']: ", llm_obs['location'])
+            print("str(self.env.prev_reward_location: ", str(self.env.prev_reward_location))
+            if llm_obs['location'] == str(self.env.prev_reward_location):
+                print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: start - self.env.start', self.env.start)
+                if self.env.reward_obs == 'SHOCK':    
+                    self.message_history.append(SystemMessage(content='EXPERIMENT FAILED'))
+                else:
+                    self.message_history.append(SystemMessage(content='EXPERIMENT SUCCESS'))
+                obs_message = f"Let try every step again with a new starting location: {self.env.start}"
+                print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: obs_message: ', obs_message)
 
-        # CHECK IF LLM CAN UNDERSTAND OR NOT
-        if llm_obs['location'] == str(self.env.prev_reward_location):
-            print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: start - self.env.start', self.env.start)
-            if self.env.reward_obs == 'SHOCK':    
-                self.message_history.append(SystemMessage(content='EXPERIMENT FAILED'))
-            else:
-                self.message_history.append(SystemMessage(content='EXPERIMENT SUCCESS'))
-            obs_message = f"Try new experiment with new starting position which is {self.env.start}"
-            print('obs_message: ', obs_message)
-
-        self.message_history.append(HumanMessage(content=obs_message))
+            self.message_history.append(HumanMessage(content=obs_message))
 
         return obs_message
     

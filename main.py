@@ -16,29 +16,8 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
 
-reasoning_tool = Tool(
-            name="Reasoning",
-            func=ReasoningTool().run,
-            description="Helps in reasoning about the next move in the grid world."
-        )
 
-# Define the tool that the agent can use
-# tools = [reasoning_tool]
-
-# llm_with_tools = llm.bind_functions([reasoning_tool, ModelResponse])
-
-# Create the ReAct agent using the defined prompt and tools
-# agent = create_react_agent(
-#     llm=llm,
-#     tools=tools,
-#     prompt=prompt,
-#     output_parser=parse)
-
-
-# Initialize the agent executor
-# agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
-    # Test environment
+# Test environment
 def run_environment():
         
     # Register environment
@@ -80,18 +59,18 @@ def run_environment():
         while not done:
             for event in pygame.event.get():
                 infering_times+=1
-                if infering_times > 50:
-                    done = True
+                if infering_times > 25:
                     infering_times = 0
-                
 
                 if event.type == pygame.QUIT:
                     done = True
                 else:         
                     agent_response = agent.act()
-                    observation, reward_obs, done, info = env.step(agent_response['action'])
+                    observation, reward_obs, done, info = env.step({'action': agent_response['action'], 'infering_times': infering_times})
+                    agent_response['reset'] = info['reset']
                     obs_message = agent.observe(llm_obs=agent_response, obs = observation)
                     print("infering_times: ", infering_times)
+                    print(f"event.type at infering_time {infering_times}: {event.type}")
                     print('agent_response: ', agent_response)
                     print(f"Action: {agent_response['action']}")
                     

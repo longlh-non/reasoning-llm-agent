@@ -31,11 +31,13 @@ class Button:
 
 
 class POMDPGridWorldEnv(gym.Env):
-    def __init__(self, is_using_llm=True, start_pos=(1, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = True, is_random_reward = True, is_reward_horizontal = False):
+    def __init__(self, is_using_llm=True, start_pos=(1, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = False, is_random_reward = True, is_reward_horizontal = False):
         super(POMDPGridWorldEnv, self).__init__()
 
-        self.row = np.random.randint(6, 10)
-        self.collumn = np.random.randint(6, 10)
+        # self.row = np.random.randint(6, 10)
+        # self.collumn = np.random.randint(6, 10)
+        self.row = 6
+        self.collumn = 8
         self.grid_world_dimension = (self.row, self.collumn)
 
         # Initialize the agent's position randomly
@@ -54,7 +56,7 @@ class POMDPGridWorldEnv(gym.Env):
         self.is_cue_1_reached = False
 
         self.cue_2_loc_names = ['L1', 'L2', 'L3', 'L4']
-        self.cue_2_location = (0, 0)
+        self.cue_2_location = 'Null'
         self.cue_2_name = cue_2
         self.cue_2_obs = 'Null'
         self.is_cue_2_reached = False
@@ -63,10 +65,10 @@ class POMDPGridWorldEnv(gym.Env):
         self.is_reward_horizontal = is_reward_horizontal
         self.reward_conditions = reward_conditions
         self.reward_locations = reward_locations
-        self.reward_location = (0, 0)
+        self.reward_location = 'Null'
         self.is_reward_horizontal = False 
         self.reward_obs = 'Null'
-        self.prev_reward_location = (0, 0)
+        self.prev_reward_location = 'Null'
 
         if is_list_of_tuples(cue_2_locations) and len(cue_2_locations) == 4:
             self.cue_2_locations = cue_2_locations
@@ -101,14 +103,15 @@ class POMDPGridWorldEnv(gym.Env):
     def reset_agent_pos(self):
         if self.is_random_start:
             self.start = np.random.randint(0, self.row), np.random.randint(0, self.collumn)
-
         self.agent_pos = self.start
         self.cue_1_obs = 'Null'
         self.cue_2_location = (0, 0)
         self.cue_2_obs = 'Null'
         self.reward_condition = 'Null'
-        self.reward_location = (0, 0)
         self.prev_reward_location = self.reward_location
+        self.reward_location = 'Null'
+        self.path = [tuple(self.agent_pos)]  # Reset path and include the starting location
+
 
     def reset(self):
         self.reset_agent_pos()
@@ -126,89 +129,98 @@ class POMDPGridWorldEnv(gym.Env):
         
         # Define a goal position
         self.goal_pos = self.reward_locations[random_reward]
-        self.done = False
-        self.path = [tuple(self.agent_pos)]  # Reset path and include the starting location
         return self._get_observation(), {}
 
-    def step(self, action):
-        
-        self.agent_action = action
+    def step(self, action): 
+        print('action: ', action)
+        print('infering_times: ', action['infering_times'])
+        reset = False
+        if action['infering_times'] == 1:
+            self.done = False
 
-        if self.done:
-            raise RuntimeError("Environment is done. Please reset it.")
-        
-        if self.agent_pos == self.cue_1_location and self.is_cue_1_reached != True:
-            self.is_cue_1_reached = True
-            # self.show_popup('cue_1')
-            self.random_obs('cue_1')
+        if action['infering_times'] >= 25:
+            # self.done = True
+            action['infering_times'] = 0
+            self.reset()
 
-        if self.agent_pos == self.cue_2_location and self.is_cue_1_reached and self.is_cue_2_reached != True:
-            self.is_cue_2_reached = True
-            # self.show_popup('cue_2')
-            self.random_obs('cue_2')
+        else:
+            self.agent_action = action['action']
 
-        # if self.is_using_llm:
+            # if self.done:
+            #     raise RuntimeError("Environment is done. Please reset it.")
+            
+            if self.agent_pos == self.cue_1_location and self.is_cue_1_reached != True:
+                self.is_cue_1_reached = True
+                self.random_obs('cue_1')
 
-        # Define the movement
-        if action == 0 or action == 'UP':  # Up
-            self.agent_pos = (max(0, self.agent_pos[0] - 1), self.agent_pos[1])
-        elif action == 1 or action == 'RIGHT':  # Right
-            self.agent_pos = (self.agent_pos[0], min(self.collumn - 1, self.agent_pos[1] + 1))
-        elif action == 2  or action == 'DOWN':  # Down
-            self.agent_pos = (min(self.row - 1, self.agent_pos[0] + 1), self.agent_pos[1])
-        elif action == 3  or action == 'LEFT':  # Left
-            self.agent_pos = (self.agent_pos[0], max(0, self.agent_pos[1] - 1))
-        elif action == 4  or action == 'STAY':  # Stay
-            pass  # No change in position
+            if self.agent_pos == self.cue_2_location and self.is_cue_1_reached and self.is_cue_2_reached != True:
+                self.is_cue_2_reached = True
+                self.random_obs('cue_2')
+
+            # Define the movement
+            if self.agent_action == 0 or self.agent_action == 'UP':  # Up
+                self.agent_pos = (max(0, self.agent_pos[0] - 1), self.agent_pos[1])
+            elif self.agent_action == 1 or self.agent_action == 'RIGHT':  # Right
+                self.agent_pos = (self.agent_pos[0], min(self.collumn - 1, self.agent_pos[1] + 1))
+            elif self.agent_action == 2  or self.agent_action == 'DOWN':  # Down
+                self.agent_pos = (min(self.row - 1, self.agent_pos[0] + 1), self.agent_pos[1])
+            elif self.agent_action == 3  or self.agent_action == 'LEFT':  # Left
+                self.agent_pos = (self.agent_pos[0], max(0, self.agent_pos[1] - 1))
+            elif self.agent_action == 4  or self.agent_action == 'STAY':  # Stay
+                pass  # No change in position
 
 
-        if tuple(self.agent_pos) not in self.path:
-            self.path.append(tuple(self.agent_pos))  # Add new position to the path
+            if tuple(self.agent_pos) not in self.path:
+                self.path.append(tuple(self.agent_pos))  # Add new position to the path
 
-        # Check if the agent has reached the goal
-        # if self.agent_pos == self.goal_pos:
-        #     reward = 1
-        #     self.done = True
-        # else:
-        #     reward = 0
+            # Check if the agent has reached the goal
+            # if self.agent_pos == self.goal_pos:
+            #     reward = 1
+            #     self.done = True
+            # else:
+            #     reward = 0
 
-        # @NOTE: here we use the same variable `reward_locations` to create both the agent's generative model (the `A` matrix) as well as the generative process.
-        # This is just for simplicity, but it's not necessary -  you could have the agent believe that the Cheese/Shock are actually stored in arbitrary, incorrect locations.
-        
-        self.reward_obs = 'Null'
+            # @NOTE: here we use the same variable `reward_locations` to create both the agent's generative model (the `A` matrix) as well as the generative process.
+            # This is just for simplicity, but it's not necessary -  you could have the agent believe that the Cheese/Shock are actually stored in arbitrary, incorrect locations.
+            
+            self.reward_obs = 'Null'
 
-        if self.is_cue_2_reached:
-            if self.is_reward_horizontal:
-                if self.agent_pos == self.reward_locations[0] and self.is_cue_2_reached:
-                    if self.cue_2_obs == 'LEFT':
-                        self.reward_obs = 'CHEESE'
-                    else:
-                        self.reward_obs = 'SHOCK'
-                elif self.agent_pos == self.reward_locations[1]:
-                    if self.cue_2_obs == 'RIGHT':
-                        self.reward_obs = 'CHEESE'
-                    else:
-                        self.reward_obs = 'SHOCK'
-            else:
-                if self.agent_pos == self.reward_locations[0]:
+            if self.is_cue_2_reached:
+                if self.is_reward_horizontal:
+                    if self.agent_pos == self.reward_locations[0]:
+                        if self.cue_2_obs == 'LEFT':
+                            self.reward_obs = 'CHEESE'
+                        else:
+                            self.reward_obs = 'SHOCK'
+                    elif self.agent_pos == self.reward_locations[1]:
+                        if self.cue_2_obs == 'RIGHT':
+                            self.reward_obs = 'CHEESE'
+                        else:
+                            self.reward_obs = 'SHOCK'
+                else:
+                    if self.agent_pos == self.reward_locations[0]:
 
-                    if self.cue_2_obs == 'TOP':
-                        self.reward_obs = 'CHEESE'
-                    else:
-                        self.reward_obs = 'SHOCK'
-                elif self.agent_pos == self.reward_locations[1]:
-                    if self.cue_2_obs == 'BOTTOM':
-                        self.reward_obs = 'CHEESE'
-                    else:
-                        self.reward_obs = 'SHOCK'        
+                        if self.cue_2_obs == 'TOP':
+                            self.reward_obs = 'CHEESE'
+                        else:
+                            self.reward_obs = 'SHOCK'
+                    elif self.agent_pos == self.reward_locations[1]:
+                        if self.cue_2_obs == 'BOTTOM':
+                            self.reward_obs = 'CHEESE'
+                        else:
+                            self.reward_obs = 'SHOCK'
 
-        # current_location = self.agent_pos
-        # cue_1_obs = self.cue_1_obs
-        # cue_2_obs = self.cue_2_obs
+            if self.reward_obs != 'Null':
+                action['infering_times'] = 0
+                reset = True
 
-        # Get the new observation
+            # current_location = self.agent_pos
+            # cue_1_obs = self.cue_1_obs
+            # cue_2_obs = self.cue_2_obs
+
+            # Get the new observation
         observation = self._get_observation()
-        return observation, self.reward_obs, self.done, {}
+        return observation, self.reward_obs, self.done, {'infering_times': action['infering_times'], 'reset': reset }
 
 
     def render(self, mode='human'):
@@ -287,6 +299,7 @@ class POMDPGridWorldEnv(gym.Env):
         
         if (self.reward_obs != 'Null'):
             self.show_reward_popup()
+            # self.done = True
             self.reset()        
         
         pygame.display.flip()
