@@ -152,6 +152,8 @@ class LLMAgent:
                     \"cheese_location\": \"(2, 0)\"
                     \"shock_location\": \"(2, 3)\",
                 }}
+
+            TRY TO GENERATE AS LEAST TOKENS AS YOU CAN TO IMPROVE SPEED.
         """
 
     def reset_log_file(self):

@@ -100,6 +100,7 @@ class POMDPGridWorldEnv(gym.Env):
         self.screen_size = self.grid_size + 2*self.info_height
         self.cell_size = self.grid_size // max(self.row, self.collumn)
         self.screen = pygame.display.set_mode((self.grid_size, self.screen_size))
+        self.cell_size = self.grid_size // max(self.row, self.collumn)
         pygame.display.set_caption("POMDP Grid World")
 
 
@@ -267,64 +268,55 @@ class POMDPGridWorldEnv(gym.Env):
     def render(self, mode='human'):
         self.screen.fill((255, 255, 255))  # White background
 
-        # Calculate cell size based on rows and columns
-        cell_size = self.grid_size // max(self.row, self.collumn)
+        # Pre-create and cache grid lines (static grid lines can be cached)
+        if not hasattr(self, 'grid_lines'):
+            self.grid_lines = []
+            for x in range(0, self.grid_size, self.cell_size):
+                self.grid_lines.append(((x, 0), (x, self.grid_size)))
+            for y in range(0, self.grid_size, self.cell_size):
+                self.grid_lines.append(((0, y), (self.grid_size, y)))
+        
+        self.log_info(f'self.grid_lines: {self.grid_lines}')
 
-        # Draw the grid
-        for x in range(0, self.grid_size, cell_size):
-            pygame.draw.line(self.screen, (0, 0, 0), (x, 0), (x, self.grid_size))
-        for y in range(0, self.grid_size, cell_size):
-            pygame.draw.line(self.screen, (0, 0, 0), (0, y), (self.grid_size, y))
+        # Draw the grid (from cached grid lines)
+        for line in self.grid_lines:
+            pygame.draw.line(self.screen, (0, 0, 0), line[0], line[1])
 
         # Draw the goal
-        goal_rect = pygame.Rect(self.goal_pos[1] * cell_size, self.goal_pos[0] * cell_size, cell_size, cell_size)
-        pygame.draw.rect(self.screen, (255, 0, 0), goal_rect)  # Red goal
+        # goal_rect = pygame.Rect(self.goal_pos[1] * cell_size, self.goal_pos[0] * cell_size, cell_size, cell_size)
+        # pygame.draw.rect(self.screen, (255, 0, 0), goal_rect)  # Red goal
 
         # Draw cue 1 with "C1" label
-        cue_1_rect = pygame.Rect(self.cue_1_location[1] * cell_size, self.cue_1_location[0] * cell_size, cell_size, cell_size)
+        cue_1_rect = pygame.Rect(self.cue_1_location[1] * self.cell_size, self.cue_1_location[0] * self.cell_size, self.cell_size, self.cell_size)
         pygame.draw.rect(self.screen, (227, 81, 23), cue_1_rect)
         text_surface = self.font.render("C1", True, (0, 0, 0))
         text_rect = text_surface.get_rect(center=cue_1_rect.center)
         self.screen.blit(text_surface, text_rect)
 
-        # Draw cue 2 locations with their names
-        for idx, loc in enumerate(self.cue_2_locations):
-            cue_2_rect = pygame.Rect(loc[1] * cell_size, loc[0] * cell_size, cell_size, cell_size)
-            pygame.draw.rect(self.screen, (23, 173, 227), cue_2_rect)
+        # Draw cue 2 locations
+        if not hasattr(self, 'cue_2_rects'):
+            self.cue_2_rects = [pygame.Rect(loc[1] * self.cell_size, loc[0] * self.cell_size, self.cell_size, self.cell_size) for loc in self.cue_2_locations]
+        for rect in self.cue_2_rects:
+            pygame.draw.rect(self.screen, (23, 173, 227), rect)
 
-        # Draw reward locations with their names
-        for idx, loc in enumerate(self.reward_locations):
-            reward_rect = pygame.Rect(loc[1] * cell_size, loc[0] * cell_size, cell_size, cell_size)
-            pygame.draw.rect(self.screen, (232, 65, 65), reward_rect)   
+        # Draw reward locations
+        if not hasattr(self, 'reward_rects'):
+            self.reward_rects = [pygame.Rect(loc[1] * self.cell_size, loc[0] * self.cell_size, self.cell_size, self.cell_size) for loc in self.reward_locations]
+        for rect in self.reward_rects:
+            pygame.draw.rect(self.screen, (232, 65, 65), rect)
 
         # Draw the path
         for pos in self.path:
-            path_rect = pygame.Rect(pos[1] * cell_size, pos[0] * cell_size, cell_size, cell_size)
+            path_rect = pygame.Rect(pos[1] * self.cell_size, pos[0] * self.cell_size, self.cell_size, self.cell_size)
             pygame.draw.rect(self.screen, (192, 192, 192), path_rect)  # Gray color for the path
             if pos == self.cue_1_location:
                 text_surface = self.font.render("C1", True, (0, 0, 0))
                 text_rect = text_surface.get_rect(center=path_rect.center)
                 self.screen.blit(text_surface, text_rect)
-
-        # Draw cue 2 locations with their names
-        for idx, loc in enumerate(self.cue_2_locations):
-            cue_2_rect = pygame.Rect(loc[1] * cell_size, loc[0] * cell_size, cell_size, cell_size)
-            cue_2_label = self.cue_2_loc_names[idx]
-            text_surface = self.font.render(cue_2_label, True, (0, 0, 0))
-            text_rect = text_surface.get_rect(center=cue_2_rect.center)
-            self.screen.blit(text_surface, text_rect)                
-
-        # Draw reward locations with their names
-        for idx, loc in enumerate(self.reward_locations):
-            reward_rect = pygame.Rect(loc[1] * cell_size, loc[0] * cell_size, cell_size, cell_size)
-            condition_label = self.reward_conditions[idx]
-            text_surface = self.font.render(condition_label, True, (0, 0, 0))
-            text_rect = text_surface.get_rect(center=reward_rect.center)
-            self.screen.blit(text_surface, text_rect)   
-
+        
         # Draw the agent
         self.log_info({'self.agent_pos': self.agent_pos})
-        agent_rect = pygame.Rect(self.agent_pos[1] * cell_size, self.agent_pos[0] * cell_size, cell_size, cell_size)
+        agent_rect = pygame.Rect(self.agent_pos[1] * self.cell_size, self.agent_pos[0] * self.cell_size, self.cell_size, self.cell_size)
         pygame.draw.rect(self.screen, (79, 77, 184), agent_rect)  # Blue agent
         agent_label = 'A'
         agent_text_surface = self.font.render(agent_label, True, (0, 0, 0))
