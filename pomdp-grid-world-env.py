@@ -31,7 +31,7 @@ class Button:
 
 
 class POMDPGridWorldEnv(gym.Env):
-    def __init__(self, log_file="agent_movement_log.txt", is_using_llm=True, start_pos=(1, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = False, is_random_reward = True, is_reward_horizontal = False):
+    def __init__(self, log_file="agent_movement_log.txt", is_using_llm=True, start_pos=(1, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = True, is_random_reward = True, is_reward_horizontal = False):
         super(POMDPGridWorldEnv, self).__init__()
 
         # self.row = np.random.randint(6, 10)
@@ -104,8 +104,8 @@ class POMDPGridWorldEnv(gym.Env):
 
 
         self.log_file = log_file
-        self.reset_log_file()  # Resets the log file at the start of each run
-
+        self.reset_log_file(self.log_file)  # Resets the log file at the start of each run
+        self.reset_log_file('agent_path.txt')
         # Define parameters for the POMDP
         self.reset()
 
@@ -114,7 +114,7 @@ class POMDPGridWorldEnv(gym.Env):
             self.start = np.random.randint(0, self.row), np.random.randint(0, self.collumn)
         self.agent_pos = self.start
         self.cue_1_obs = 'Null'
-        self.cue_2_location = (0, 0)
+        self.cue_2_location = 'Null'
         self.cue_2_obs = 'Null'
         self.reward_condition = 'Null'
         self.prev_reward_location = self.reward_location
@@ -142,13 +142,23 @@ class POMDPGridWorldEnv(gym.Env):
         self.goal_pos = self.reward_locations[random_reward]
         return self._get_observation(), {}
 
-    def reset_log_file(self):
+    def reset_log_file(self, file_name):
         with open(self.log_file, 'w') as file:
-            file.write("Agent Movement Log\n")
+            file.write("\n")
     
     def log_agent_movement(self, step_count, next_action, action_reason, next_position, position, result):
         with open(self.log_file, 'a') as file:
             log_entry = f"Step {step_count}: Position - {position} -  Next action - {next_action}, Next position - {next_position}, Reason - {action_reason} , Result - {self.result}\n"
+            file.write(log_entry)
+
+    def log_random_obs(self, step_count, obs, obs_location):
+        with open('random_obs.txt', 'a') as file:
+            log_entry = f"Step {step_count} Random {obs} at {obs_location}\n"
+            file.write(log_entry)
+
+    def log_path(self, step_count, agent_pos):
+        with open('agent_path.txt', 'a') as file:
+            log_entry = f"Step {step_count}: Agent position {agent_pos}\n"
             file.write(log_entry)
 
     def step(self, action): 
@@ -159,8 +169,7 @@ class POMDPGridWorldEnv(gym.Env):
         if action['infering_times'] == 1:
             self.done = False
 
-        if action['infering_times'] >= 25:
-            # self.done = True
+        if action['infering_times'] == 25:
             action['infering_times'] = 0
             self.reset()
 
@@ -192,6 +201,7 @@ class POMDPGridWorldEnv(gym.Env):
 
             if tuple(self.agent_pos) not in self.path:
                 self.path.append(tuple(self.agent_pos))  # Add new position to the path
+                self.log_path(self.current_step, self.agent_pos)
 
             # Check if the agent has reached the goal
             # if self.agent_pos == self.goal_pos:
@@ -331,15 +341,24 @@ class POMDPGridWorldEnv(gym.Env):
         pygame.display.flip()
 
     def random_obs(self, type):
+        obs = ''
+        obs_location = ''
         if type == 'cue_1':
             rand_idx = np.random.randint(4)
             self.cue_1_obs = self.cue_2_loc_names[rand_idx]
             self.cue_2_location = self.cue_2_locations[rand_idx]
+            obs = self.cue_1_obs
+            obs_location = self.cue_2_location
+
         else:
             rand_idx = np.random.randint(2)
             self.cue_2_obs = self.reward_conditions[rand_idx]
             self.reward_location = self.reward_locations[rand_idx]
+            obs = self.cue_2_obs
+            obs_location = self.reward_location
 
+        self.log_random_obs(self.current_step, obs, obs_location)
+        
     def show_reward_popup(self):
         popup_width = 300
         popup_height = 200
@@ -349,7 +368,7 @@ class POMDPGridWorldEnv(gym.Env):
 
         # Calculate center position for the popup
         center_x = (self.screen_size - popup_width) // 2
-        center_y = (self.screen_size - popup_height) // 2
+        center_y = (self.screen_size - popup_height)
 
         text_surface = self.font.render(BUTTON_LABELS, True, (0, 0, 0))
         text_rect = text_surface.get_rect(center=(popup_width//2, popup_height//2))

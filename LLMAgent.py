@@ -125,12 +125,13 @@ class LLMAgent:
                 self.message_history.append(SystemMessage(content='WHAT IS CUE 2 NAME?'))
                 obs_message = f"These are cue 2 possible locations: {{\"L1\": {self.env.cue_2_locations[0]}, \"L2\": {self.env.cue_2_locations[1]}, \"L3\": {self.env.cue_2_locations[2]}, \"L4\": {self.env.cue_2_locations[3]}}} and the one specified as cue_2 is {self.env.cue_1_obs}, the other locations are empty now. Keep Infering until reaching {self.env.cue_1_obs}"
                 print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: obs message', obs_message)
+            self.log_conversation(f'str(self.env.cue_1_location): {str(self.env.cue_1_location)}')
 
             if llm_obs['position'] == str(self.env.cue_2_location):
                 self.message_history.append(SystemMessage(content='WHAT IS REWARD CONDITION?'))
-                obs_message = f"These are possible reward locations: {{\"{self.env.reward_conditions[0]}\": {self.env.reward_locations[0]}, \"{self.env.reward_conditions[1]}\": {self.env.cue_2_locations[1]}}} and the CHEESE is {self.env.cue_2_obs} so that the SHOCK is the other one in possible reward locations is SHOCK. Keep Infering until reaching the CHEESE and try to avoid the SHOCK"
+                obs_message = f"These are possible reward locations: {{\"{self.env.reward_conditions[0]}\": {self.env.reward_locations[0]}, \"{self.env.reward_conditions[1]}\": {self.env.reward_locations[1]}}} and the CHEESE is {self.env.cue_2_obs} so that the SHOCK is the other one in possible reward locations is SHOCK. Keep Infering until reaching the CHEESE and try to avoid the SHOCK"
                 print('HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE: obs message', obs_message)
-
+            self.log_conversation(f'str(self.env.cue_2_location): {str(self.env.cue_2_location)}')
             self.message_history.append(HumanMessage(content=obs_message))
             self.log_conversation(obs_message)
             

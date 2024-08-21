@@ -68,6 +68,7 @@ def run_environment():
                     agent_response = agent.act()
                     observation, reward_obs, done, info = env.step({'next_action': agent_response['next_action'], 'action_reason': agent_response['action_reason'], 'position': agent_response['position'], 'next_position': agent_response['next_position'], 'infering_times': infering_times})
                     agent_response['reset'] = info['reset']
+                    infering_times = info['infering_times']
                     obs_message = agent.observe(llm_obs=agent_response, obs = observation)
                     print("infering_times: ", infering_times)
                     print(f"event.type at infering_time {infering_times}: {event.type}")
