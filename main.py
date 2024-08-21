@@ -58,22 +58,36 @@ def run_environment():
         infering_times = 0
         while not done:
             for event in pygame.event.get():
+                reset = False
                 infering_times+=1
-                if infering_times > 25:
+                if infering_times > 25 :
                     infering_times = 0
+                    reset = True
+                    env.reset()
 
                 if event.type == pygame.QUIT:
                     done = True
                 else:         
                     agent_response = agent.act()
-                    observation, reward_obs, done, info = env.step({'next_action': agent_response['next_action'], 'action_reason': agent_response['action_reason'], 'position': agent_response['position'], 'next_position': agent_response['next_position'], 'infering_times': infering_times})
-                    agent_response['reset'] = info['reset']
+
+                    observation, reward_obs, done, info = env.step({
+                        'next_action': agent_response['next_action'],
+                        'action_reason': agent_response['action_reason'],
+                        'position': agent_response['position'],
+                        'next_position': agent_response['next_position'],
+                        'infering_times': infering_times})
+                    
+                    if info['reset'] == True:
+                        reset = info['reset']
+                    
+                    agent_response['reset'] = reset
+                    
                     infering_times = info['infering_times']
+
                     obs_message = agent.observe(llm_obs=agent_response, obs = observation)
-                    print("infering_times: ", infering_times)
-                    print(f"event.type at infering_time {infering_times}: {event.type}")
+
                     print('agent_response: ', agent_response)
-                    print(f"Action: {agent_response['next_action']}")
+                    print(f"Next action: {agent_response['next_action']}")
                     
                     env.render()
                     # print(f"Observation: {observation}, Action: {agent_response['action']}, Reward: {reward_obs}, Done: {done}")

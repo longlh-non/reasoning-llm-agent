@@ -31,7 +31,7 @@ class Button:
 
 
 class POMDPGridWorldEnv(gym.Env):
-    def __init__(self, log_file="agent_movement_log.txt", is_using_llm=True, start_pos=(1, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = True, is_random_reward = True, is_reward_horizontal = False):
+    def __init__(self, log_file="agent_movement_log.txt", is_using_llm=True, start_pos=(1, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = False, is_random_reward = True, is_reward_horizontal = False):
         super(POMDPGridWorldEnv, self).__init__()
 
         # self.row = np.random.randint(6, 10)
@@ -126,6 +126,7 @@ class POMDPGridWorldEnv(gym.Env):
 
     def reset(self):
         self.reset_agent_pos()
+        self.reset_log_file('agent_path.txt')
 
         if self.is_random_reward:
             self.is_reward_horizontal = random.choice([True, False])
