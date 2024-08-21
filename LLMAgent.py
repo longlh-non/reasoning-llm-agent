@@ -158,6 +158,10 @@ class LLMAgent:
         with open(self.log_file, 'w') as file:
             file.write("Conversation Log\n")
     
+    def log_info(self, info):
+        with open('debug_agent_info.txt', 'a') as file:
+            file.write(f"{info}\n")
+
     def log_conversation(self, obs_msg):
         with open(self.log_file, 'a') as file:
             log_entry = f"{obs_msg}\n"

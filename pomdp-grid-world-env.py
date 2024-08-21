@@ -31,7 +31,7 @@ class Button:
 
 
 class POMDPGridWorldEnv(gym.Env):
-    def __init__(self, log_file="agent_movement_log.txt", is_using_llm=True, start_pos=(1, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = False, is_random_reward = True, is_reward_horizontal = False):
+    def __init__(self, log_file="agent_movement_log.txt", is_using_llm=True, start_pos=(0, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = True, is_random_reward = True, is_reward_horizontal = False):
         super(POMDPGridWorldEnv, self).__init__()
 
         # self.row = np.random.randint(6, 10)
@@ -48,7 +48,7 @@ class POMDPGridWorldEnv(gym.Env):
         if self.is_random_start:
             self.start = np.random.randint(0, self.row), np.random.randint(0, self.collumn)
 
-        self.agent_pos = self.start
+        # self.agent_pos = self.start
         self.agent_action = 'STAY'
 
         self.cue_1_location = cue_1_location
@@ -97,7 +97,7 @@ class POMDPGridWorldEnv(gym.Env):
         self.font = pygame.font.SysFont(None, 24)
         self.grid_size = 700
         self.info_height = 50
-        self.screen_size = self.grid_size + self.info_height
+        self.screen_size = self.grid_size + 2*self.info_height
         self.cell_size = self.grid_size // max(self.row, self.collumn)
         self.screen = pygame.display.set_mode((self.grid_size, self.screen_size))
         pygame.display.set_caption("POMDP Grid World")
@@ -123,9 +123,11 @@ class POMDPGridWorldEnv(gym.Env):
         self.is_cue_1_reached = False
         self.is_cue_2_reached = False
         self.current_step = 0  # Reset the step count
+        self.log_info({'reset': True})
 
     def reset(self):
         self.reset_agent_pos()
+
         self.reset_log_file('agent_path.txt')
 
         if self.is_random_reward:
@@ -162,6 +164,10 @@ class POMDPGridWorldEnv(gym.Env):
             log_entry = f"Step {step_count}: Agent position {agent_pos}\n"
             file.write(log_entry)
 
+    def log_info(self, info):
+        with open('debug_env_info.txt', 'a') as file:
+            file.write(f"{info}\n")
+
     def step(self, action): 
         print('response: ', action)
         print('infering_times: ', action['infering_times'])
@@ -171,8 +177,7 @@ class POMDPGridWorldEnv(gym.Env):
             self.done = False
 
         if action['infering_times'] == 25:
-            action['infering_times'] = 0
-            self.reset()
+            reset = True
 
         else:
             self.agent_action = action['next_action']
@@ -242,7 +247,6 @@ class POMDPGridWorldEnv(gym.Env):
                             self.reward_obs = 'SHOCK'
 
             if self.reward_obs != 'Null':
-                action['infering_times'] = 0
                 reset = True
 
             # current_location = self.agent_pos
@@ -257,7 +261,7 @@ class POMDPGridWorldEnv(gym.Env):
         
         # Increment the step counter
         self.current_step += 1
-        return observation, self.reward_obs, self.done, {'infering_times': action['infering_times'], 'reset': reset }
+        return observation, self.reward_obs, self.done, { 'reset': reset }
 
 
     def render(self, mode='human'):
@@ -319,18 +323,27 @@ class POMDPGridWorldEnv(gym.Env):
             self.screen.blit(text_surface, text_rect)   
 
         # Draw the agent
+        self.log_info({'self.agent_pos': self.agent_pos})
         agent_rect = pygame.Rect(self.agent_pos[1] * cell_size, self.agent_pos[0] * cell_size, cell_size, cell_size)
         pygame.draw.rect(self.screen, (79, 77, 184), agent_rect)  # Blue agent
         agent_label = 'A'
         agent_text_surface = self.font.render(agent_label, True, (0, 0, 0))
         agent_text_rect = agent_text_surface.get_rect(center=agent_rect.center)
         self.screen.blit(agent_text_surface, agent_text_rect)
-
+        
         # ADD AN INFORMATION LINE AT THE BOTTOM OF THE POP UP
-        info_text_surface = self.font.render(f"Current location: {self.agent_pos}, Action: {self.agent_action}, Cue 2: {self.cue_1_obs} - {self.cue_2_location}, Reward condition: {self.cue_2_obs} - {self.reward_location}", True, (0, 0, 0))
+        info_text_surface = self.font.render(f"Current location: {self.agent_pos}, Action: {self.agent_action}, Cue 2: {self.cue_1_obs} - {self.cue_2_location}", True, (0, 0, 0))
         info_x = 10  # Padding from the left edge
         info_y = self.screen_size - self.info_height + 10  # Positioned at the bottom within the info area
         self.screen.blit(info_text_surface, (info_x, info_y))
+        info_1_text_surface = self.font.render(f"Reward condition: {self.cue_2_obs} - {self.reward_location}", True, (0, 0, 0))
+        info_1_x = 10  # Padding from the left edge
+        info_1_y = self.screen_size - 1.5*self.info_height + 10 # Positioned at the bottom within the info area
+        self.screen.blit(info_1_text_surface, (info_1_x, info_1_y))
+        info_2_text_surface_2 = self.font.render(f"Random start: {self.is_random_start}", True, (0, 0, 0))
+        info_2_x = 10  # Padding from the left edge
+        info_2_y = self.screen_size - 2*self.info_height + 10  # Positioned at the bottom within the info area
+        self.screen.blit(info_2_text_surface_2, (info_2_x, info_2_y))
 
         # ANNOUNCE IF REACHING THE FINAL GOAL (SPECIFY THAT IT'S CHEESE OR SHOCK)
         

@@ -56,14 +56,16 @@ def run_environment():
         print("Experiments #", iteration_times)
         # ADD INFERING TIMES LIMITATION
         infering_times = 0
+        reset = False
         while not done:
+            # reset = False
             for event in pygame.event.get():
-                reset = False
                 infering_times+=1
-                if infering_times > 25 :
+                if reset:
                     infering_times = 0
-                    reset = True
                     env.reset()
+                    agent.reset()
+                    reset = False
 
                 if event.type == pygame.QUIT:
                     done = True
@@ -77,13 +79,9 @@ def run_environment():
                         'next_position': agent_response['next_position'],
                         'infering_times': infering_times})
                     
-                    if info['reset'] == True:
-                        reset = info['reset']
+                    reset = info['reset']
+                    agent_response['reset'] = info['reset']
                     
-                    agent_response['reset'] = reset
-                    
-                    infering_times = info['infering_times']
-
                     obs_message = agent.observe(llm_obs=agent_response, obs = observation)
 
                     print('agent_response: ', agent_response)
