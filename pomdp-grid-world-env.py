@@ -136,6 +136,7 @@ class POMDPGridWorldEnv(gym.Env):
         self.path = [tuple(self.agent_pos)]  # Reset path and include the starting location
 
     def reset(self):
+        self.done = False
         self.reset_agent_pos()
         self.reset_ui()
 
@@ -195,17 +196,12 @@ class POMDPGridWorldEnv(gym.Env):
         print('infering_times: ', action['infering_times'])
         reset = False
 
-        if action['infering_times'] == 1:
-            self.done = False
-
         if action['infering_times'] == 25:
             reset = True
 
         else:
             self.agent_action = action['next_action']
             self.agent_pos = eval(action['position'])
-            # if self.done:
-            #     raise RuntimeError("Environment is done. Please reset it.")
             
             if self.agent_pos == self.cue_1_location and self.is_cue_1_reached != True:
                 self.is_cue_1_reached = True
@@ -378,7 +374,7 @@ class POMDPGridWorldEnv(gym.Env):
         
         if (self.reward_obs != 'Null'):
             self.show_reward_popup()
-            # self.done = True
+            self.done = True
             self.reset()        
         
         pygame.display.flip()

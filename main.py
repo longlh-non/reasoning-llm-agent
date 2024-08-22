@@ -50,50 +50,61 @@ def run_environment():
     agent = LLMAgent(llm, env)
     agent.reset()
     iteration_times = 0
-    maximum_iteration_times = 50
-    while iteration_times < maximum_iteration_times:
+    infering_times = 0
+    maximum_infering_times = 25
+    maximum_iterations = 25
+    reset = False
+    print ('iteration_times < maximum_iterations: ', iteration_times < maximum_iterations)
+    while iteration_times < maximum_iterations:
         iteration_times+=1
-        print("Experiments #", iteration_times)
-        # ADD INFERING TIMES LIMITATION
+        print("Experiment #", iteration_times)
         infering_times = 0
-        reset = False
-        while not done:
-            # reset = False
-            for event in pygame.event.get():
-                infering_times+=1
-                if reset:
-                    infering_times = 0
-                    env.reset()
-                    agent.reset()
-                    reset = False
+        
+        if reset:
+                env.reset()
+                agent.reset()
+                reset = False
+        
+        while infering_times < maximum_infering_times and not reset:
+            infering_times+=1
+            print("Infering time #", infering_times)
 
+            # ADD INFERING TIMES LIMITATION
+            # reset = False
+            events = pygame.event.get()
+
+            for event in events:
                 if event.type == pygame.QUIT:
                     done = True
-                else:         
-                    agent_response = agent.act()
+            
+                        
+            if done:
+                break
 
-                    observation, reward_obs, done, info = env.step({
-                        'next_action': agent_response['next_action'],
-                        'action_reason': agent_response['action_reason'],
-                        'position': agent_response['position'],
-                        'next_position': agent_response['next_position'],
-                        'infering_times': infering_times})
-                    
-                    reset = info['reset']
-                    agent_response['reset'] = info['reset']
-                    
-                    obs_message = agent.observe(llm_obs=agent_response, obs = observation)
+            agent_response = agent.act()
 
-                    print('agent_response: ', agent_response)
-                    print(f"Next action: {agent_response['next_action']}")
-                    
-                    env.render()
-                    # print(f"Observation: {observation}, Action: {agent_response['action']}, Reward: {reward_obs}, Done: {done}")
-                    
-                    # Control the frame rate (limit to 1 frames per second)
-                    env.clock.tick(1)
+            observation, reward_obs, done, info = env.step({
+                'next_action': agent_response['next_action'],
+                'action_reason': agent_response['action_reason'],
+                'position': agent_response['position'],
+                'next_position': agent_response['next_position'],
+                'infering_times': infering_times})
+            
+            reset = info['reset']
+            agent_response['reset'] = info['reset']
+            
+            obs_message = agent.observe(llm_obs=agent_response, obs = observation)
 
-        env.close()
+            print('agent_response: ', agent_response)
+            print(f"Next action: {agent_response['next_action']}")
+            
+            env.render()
+            # print(f"Observation: {observation}, Action: {agent_response['action']}, Reward: {reward_obs}, Done: {done}")
+            
+            # Control the frame rate (limit to 1 frames per second)
+            env.clock.tick(32)
+    
+    env.close()
 
 if __name__ == "__main__":
     run_environment()
