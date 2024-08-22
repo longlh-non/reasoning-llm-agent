@@ -34,6 +34,9 @@ class POMDPGridWorldEnv(gym.Env):
     def __init__(self, log_file="agent_movement_log.txt", is_using_llm=True, start_pos=(0, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = True, is_random_reward = True, is_reward_horizontal = False):
         super(POMDPGridWorldEnv, self).__init__()
 
+        # Create a clock to control the frame rate
+        self.clock = pygame.time.Clock()
+
         # self.row = np.random.randint(6, 10)
         # self.collumn = np.random.randint(6, 10)
         self.row = 6
@@ -101,6 +104,9 @@ class POMDPGridWorldEnv(gym.Env):
         self.cell_size = self.grid_size // max(self.row, self.collumn)
         self.screen = pygame.display.set_mode((self.grid_size, self.screen_size))
         self.cell_size = self.grid_size // max(self.row, self.collumn)
+        self.grid_lines = []
+        self.cue_2_rects = []
+        self.reward_rects = []
         pygame.display.set_caption("POMDP Grid World")
 
 
@@ -120,14 +126,18 @@ class POMDPGridWorldEnv(gym.Env):
         self.reward_condition = 'Null'
         self.prev_reward_location = self.reward_location
         self.reward_location = 'Null'
-        self.path = [tuple(self.agent_pos)]  # Reset path and include the starting location
         self.is_cue_1_reached = False
         self.is_cue_2_reached = False
         self.current_step = 0  # Reset the step count
-        self.log_info({'reset': True})
+
+    def reset_ui(self):
+        self.cue_2_rects = []
+        self.reward_rects = []
+        self.path = [tuple(self.agent_pos)]  # Reset path and include the starting location
 
     def reset(self):
         self.reset_agent_pos()
+        self.reset_ui()
 
         self.reset_log_file('agent_path.txt')
 
@@ -169,6 +179,17 @@ class POMDPGridWorldEnv(gym.Env):
         with open('debug_env_info.txt', 'a') as file:
             file.write(f"{info}\n")
 
+    def log_experiment_results(self, info):
+        with open('experiments_results.txt', 'a') as file:
+            file.write(f"{info}\n")
+
+    def evaluate_result(self):
+        # Result: CHEESE - SHOCK - TIMES EXCEED - WRONG NEXT POSITION - 
+        result = False
+
+        if self.reward_obs == 'CHEESE':
+            result = True 
+        
     def step(self, action): 
         print('response: ', action)
         print('infering_times: ', action['infering_times'])
@@ -269,15 +290,13 @@ class POMDPGridWorldEnv(gym.Env):
         self.screen.fill((255, 255, 255))  # White background
 
         # Pre-create and cache grid lines (static grid lines can be cached)
-        if not hasattr(self, 'grid_lines'):
+        if len(self.grid_lines) == 0:
             self.grid_lines = []
             for x in range(0, self.grid_size, self.cell_size):
                 self.grid_lines.append(((x, 0), (x, self.grid_size)))
             for y in range(0, self.grid_size, self.cell_size):
                 self.grid_lines.append(((0, y), (self.grid_size, y)))
-        
-        self.log_info(f'self.grid_lines: {self.grid_lines}')
-
+                  
         # Draw the grid (from cached grid lines)
         for line in self.grid_lines:
             pygame.draw.line(self.screen, (0, 0, 0), line[0], line[1])
@@ -294,28 +313,46 @@ class POMDPGridWorldEnv(gym.Env):
         self.screen.blit(text_surface, text_rect)
 
         # Draw cue 2 locations
-        if not hasattr(self, 'cue_2_rects'):
+        if len(self.cue_2_rects) == 0:
             self.cue_2_rects = [pygame.Rect(loc[1] * self.cell_size, loc[0] * self.cell_size, self.cell_size, self.cell_size) for loc in self.cue_2_locations]
-        for rect in self.cue_2_rects:
+
+        for i, rect in enumerate(self.cue_2_rects):
             pygame.draw.rect(self.screen, (23, 173, 227), rect)
+            text_surface = self.font.render(self.cue_2_loc_names[i], True, (0, 0, 0))
+            text_rect = text_surface.get_rect(center=rect.center)
+            self.screen.blit(text_surface, text_rect)
 
         # Draw reward locations
-        if not hasattr(self, 'reward_rects'):
+        if len(self.reward_rects) == 0:
             self.reward_rects = [pygame.Rect(loc[1] * self.cell_size, loc[0] * self.cell_size, self.cell_size, self.cell_size) for loc in self.reward_locations]
-        for rect in self.reward_rects:
+            
+        for i, rect in enumerate(self.reward_rects):
             pygame.draw.rect(self.screen, (232, 65, 65), rect)
+            text_surface = self.font.render(self.reward_conditions[i], True, (0, 0, 0))
+            text_rect = text_surface.get_rect(center=rect.center)
+            self.screen.blit(text_surface, text_rect)
 
         # Draw the path
         for pos in self.path:
             path_rect = pygame.Rect(pos[1] * self.cell_size, pos[0] * self.cell_size, self.cell_size, self.cell_size)
             pygame.draw.rect(self.screen, (192, 192, 192), path_rect)  # Gray color for the path
+            
+            displayed_text = ''
+
             if pos == self.cue_1_location:
-                text_surface = self.font.render("C1", True, (0, 0, 0))
+                displayed_text  = 'C1'
+            if pos in self.cue_2_locations:
+                idx = self.cue_2_locations.index(pos)
+                displayed_text = self.cue_2_loc_names[idx]
+            if pos in self.reward_locations:
+                idx = self.reward_locations.index(pos)
+                displayed_text = self.reward_conditions[idx]        
+            if displayed_text != '':
+                text_surface = self.font.render(displayed_text, True, (0, 0, 0))
                 text_rect = text_surface.get_rect(center=path_rect.center)
                 self.screen.blit(text_surface, text_rect)
         
         # Draw the agent
-        self.log_info({'self.agent_pos': self.agent_pos})
         agent_rect = pygame.Rect(self.agent_pos[1] * self.cell_size, self.agent_pos[0] * self.cell_size, self.cell_size, self.cell_size)
         pygame.draw.rect(self.screen, (79, 77, 184), agent_rect)  # Blue agent
         agent_label = 'A'
@@ -328,16 +365,16 @@ class POMDPGridWorldEnv(gym.Env):
         info_x = 10  # Padding from the left edge
         info_y = self.screen_size - self.info_height + 10  # Positioned at the bottom within the info area
         self.screen.blit(info_text_surface, (info_x, info_y))
+        
         info_1_text_surface = self.font.render(f"Reward condition: {self.cue_2_obs} - {self.reward_location}", True, (0, 0, 0))
         info_1_x = 10  # Padding from the left edge
         info_1_y = self.screen_size - 1.5*self.info_height + 10 # Positioned at the bottom within the info area
         self.screen.blit(info_1_text_surface, (info_1_x, info_1_y))
+
         info_2_text_surface_2 = self.font.render(f"Random start: {self.is_random_start}", True, (0, 0, 0))
         info_2_x = 10  # Padding from the left edge
         info_2_y = self.screen_size - 2*self.info_height + 10  # Positioned at the bottom within the info area
         self.screen.blit(info_2_text_surface_2, (info_2_x, info_2_y))
-
-        # ANNOUNCE IF REACHING THE FINAL GOAL (SPECIFY THAT IT'S CHEESE OR SHOCK)
         
         if (self.reward_obs != 'Null'):
             self.show_reward_popup()

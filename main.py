@@ -41,7 +41,7 @@ def run_environment():
     llm = ChatOpenAI(model="gpt-4o-mini", model_kwargs={ "response_format": { "type": "json_object" }})
 
     # Create the environment
-    env = gym.make('POMDPGridWorldEnv-v0')
+    env = gym.make('POMDPGridWorldEnv-v0', start_pos = (5, 5), is_random_start = False)
     observation, info = env.reset()
     env.render()  
 
@@ -89,6 +89,9 @@ def run_environment():
                     
                     env.render()
                     # print(f"Observation: {observation}, Action: {agent_response['action']}, Reward: {reward_obs}, Done: {done}")
+                    
+                    # Control the frame rate (limit to 1 frames per second)
+                    env.clock.tick(1)
 
         env.close()
 

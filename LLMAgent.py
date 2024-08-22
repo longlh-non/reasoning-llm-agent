@@ -59,23 +59,27 @@ class LLMAgent:
                 \"shock_location\": \"the location of shock in format (y, x) or Null if you don't know where it is\",
             }}
 
-            FOLLOW THIS INSTRUCTION AS AN EXAMPLE ONLY, YOU HAVE TO USE THE INFORMATION COMES FROM ENVIRONMENT SETUP AND HUMAN MESSAGE:
-                The Grid world Dimension is: {env.grid_world_dimension}
-                Current location of agent is (1, 4),
-                You have to inference to move to the location of CUE 1 at (2, 1). 
-                Then there are four additional locations that will serve as possible locations for CUE 2 which are {{\"L1"\: (1, 3), \"L2"\: (2, 4), \"L3"\: (4, 4), \"L4"\: (5, 3)}}.
-                The one is revealed are L3 and need to reach it.
-                After reaching it, there are new informations which are reward conditions named which are {{\"LEFT"\: (2, 0), \"RIGHT"\: (2, 3)}} and the one is revealed as CHEESE is LEFT so that RIGHT is SHOCK.
-                You need to infering and reach CHEESE on (2, 0) while avoiding SHOCK on (2, 3).
+            FOLLOW THIS INSTRUCTION BELOW AS AN SAMPLE ONLY, YOU HAVE TO USE THE INFORMATION COMES FROM ENVIRONMENT SETUP AND HUMAN MESSAGE FOR REASONING PROCESS.
+            THE INFORMATION GIVEN BELOW IS JUST A MOCK EXPERIMENT, YOU MUST NOT USE THE INFORMATION GIVEN IN THE FOLLOWING QUOTES FOR REASONING PROCESS:
+                \"The Grid world Dimension is: {self.env.grid_world_dimension}
+                    Current location of agent is (1, 4),
+                    You have to inference to move to the location of CUE 1 at (2, 1) (SAMPLE ONLY, NOT THE REAL CUE 1 LOCATION). 
+                    Then there are four additional locations that will serve as possible locations for CUE 2 (SAMPLE ONLY, NOT THE REAL CUE 2 LOCATIONS) which are {{\"L1"\: (1, 3), \"L2"\: (2, 4), \"L3"\: (4, 4), \"L4"\: (5, 3)}}.
+                    The one is revealed are L3 and need to reach it.
+                    After reaching it, there are new informations which are reward conditions named which are {{\"LEFT"\: (2, 0), \"RIGHT"\: (2, 3)}} and the one is revealed as CHEESE is LEFT so that RIGHT is SHOCK.
+                    You need to infering and reach CHEESE on (2, 0) (SAMPLE ONLY, NOT THE REAL CHEESE LOCATION) while avoiding SHOCK on (2, 3) (SAMPLE ONLY, NOT THE REAL SHOCK LOCATION).
 
-                The output should be: {{
-                    \"position\": \"(1, 4)\",
-                    \"next_action\": \"MOVE_DOWN\",
-                    \"action_reason\": \"Because cue_1 is on (2, 1), perform MOVE_DOWN to move downward one cell to have the same horizontal axe with cue_1 (2, 4)\",
-                    \"next_position\": \"(2, 4)\",
-                    \"cheese_location\": \"(2, 0)\"
-                    \"shock_location\": \"(2, 3)\",
-                }}
+                    The SAMPLE output should be: {{
+                        \"position\": \"(1, 4)\",
+                        \"next_action\": \"MOVE_DOWN\",
+                        \"action_reason\": \"Because cue_1 is on (2, 1), perform MOVE_DOWN to move downward one cell to have the same horizontal axe with cue_1 (2, 4)\",
+                        \"next_position\": \"(2, 4)\",
+                        \"cheese_location\": \"(2, 0)\"
+                        \"shock_location\": \"(2, 3)\",
+                    }}
+                \"
+            
+            TRY TO GENERATE LEAST TOKENS AS YOU CAN TOO IMPROVE PERFORMANCE BUT STILL KEEP THE SAME REASONING METHOD FOR YOUR ACTION.
         """
 
         self.message_history = []
@@ -135,24 +139,25 @@ class LLMAgent:
                 \"shock_location\": \"the location of shock in format (y, x) or Null if you don't know where it is\",
             }}
 
-            FOLLOW THIS INSTRUCTION AS AN EXAMPLE ONLY, YOU HAVE TO USE THE INFORMATION COMES FROM ENVIRONMENT SETUP AND HUMAN MESSAGE:
-                The Grid world Dimension is: {self.env.grid_world_dimension}
-                Current location of agent is (1, 4),
-                You have to inference to move to the location of CUE 1 at (2, 1). 
-                Then there are four additional locations that will serve as possible locations for CUE 2 which are {{\"L1"\: (1, 3), \"L2"\: (2, 4), \"L3"\: (4, 4), \"L4"\: (5, 3)}}.
-                The one is revealed are L3 and need to reach it.
-                After reaching it, there are new informations which are reward conditions named which are {{\"LEFT"\: (2, 0), \"RIGHT"\: (2, 3)}} and the one is revealed as CHEESE is LEFT so that RIGHT is SHOCK.
-                You need to infering and reach CHEESE on (2, 0) while avoiding SHOCK on (2, 3).
+            FOLLOW THIS INSTRUCTION BELOW AS AN SAMPLE ONLY, YOU HAVE TO USE THE INFORMATION COMES FROM ENVIRONMENT SETUP AND HUMAN MESSAGE FOR REASONING PROCESS.
+            THE INFORMATION GIVEN BELOW IS JUST A MOCK EXPERIMENT, YOU MUST NOT USE THE INFORMATION GIVEN IN THE FOLLOWING QUOTES FOR REASONING PROCESS:
+                \"The Grid world Dimension is: {self.env.grid_world_dimension}
+                    Current location of agent is (1, 4),
+                    You have to inference to move to the location of CUE 1 at (2, 1) (SAMPLE ONLY, NOT THE REAL CUE 1 LOCATION). 
+                    Then there are four additional locations that will serve as possible locations for CUE 2 (SAMPLE ONLY, NOT THE REAL CUE 2 LOCATIONS) which are {{\"L1"\: (1, 3), \"L2"\: (2, 4), \"L3"\: (4, 4), \"L4"\: (5, 3)}}.
+                    The one is revealed are L3 and need to reach it.
+                    After reaching it, there are new informations which are reward conditions named which are {{\"LEFT"\: (2, 0), \"RIGHT"\: (2, 3)}} and the one is revealed as CHEESE is LEFT so that RIGHT is SHOCK.
+                    You need to infering and reach CHEESE on (2, 0) (SAMPLE ONLY, NOT THE REAL CHEESE LOCATION) while avoiding SHOCK on (2, 3) (SAMPLE ONLY, NOT THE REAL SHOCK LOCATION).
 
-                The output should be: {{
-                    \"position\": \"(1, 4)\",
-                    \"next_action\": \"MOVE_DOWN\",
-                    \"action_reason\": \"Because cue_1 is on (2, 1), perform MOVE_DOWN to move downward one cell to have the same horizontal axe with cue_1 (2, 4)\",
-                    \"next_position\": \"(2, 4)\",
-                    \"cheese_location\": \"(2, 0)\"
-                    \"shock_location\": \"(2, 3)\",
-                }}
-
+                    The SAMPLE output should be: {{
+                        \"position\": \"(1, 4)\",
+                        \"next_action\": \"MOVE_DOWN\",
+                        \"action_reason\": \"Because cue_1 is on (2, 1), perform MOVE_DOWN to move downward one cell to have the same horizontal axe with cue_1 (2, 4)\",
+                        \"next_position\": \"(2, 4)\",
+                        \"cheese_location\": \"(2, 0)\"
+                        \"shock_location\": \"(2, 3)\",
+                    }}
+                \"
             TRY TO GENERATE AS LEAST TOKENS AS YOU CAN TO IMPROVE SPEED.
         """
 
