@@ -101,7 +101,7 @@ class LLMAgent:
     def reset_instruction(self):
         self.instructions = f"""
             Let's think step-by-step. 
-            
+
             You are an agent navigating a grid world of dimension {self.env.grid_world_dimension} to find a CHEESE and avoiding a SHOCK. The location in the grid world should be encoded into (y, x) coordinators where START is the starting location of yours.
             
             You should visualize the grid world as a matrix.
@@ -137,6 +137,7 @@ class LLMAgent:
                 \"next_action\": \"You should inference for the next action. Remember to compare your current location and the location of cue_1, cue_2, cheese and shock given by Human. Then, tell the user about the next action - MOVE_LEFT, MOVE_RIGHT, MOVE_UP, MOVE_DOWN, STAY))\",
                 \"action_reason\": \"explain why you perform above ation and also compare the location of cue_1, cue_2, cheese and shock given by Human to verify the explaination you gave. If you are going to reveal a location, please give the reason why.\",
                 \"next_position\": \"(y, x) which is next agent position after reasoning and performing the next_action \",
+                \"current_goal\": \"the name of agent's current goal such as  cue_1, L1, L2, L3, L4 or cheese\",
                 \"cheese_location\": \"the location of cheese in format (y, x) or Null if you don't know where it is\",
                 \"shock_location\": \"the location of shock in format (y, x) or Null if you don't know where it is\",
             }}
@@ -156,8 +157,9 @@ class LLMAgent:
                         \"next_action\": \"MOVE_DOWN\",
                         \"action_reason\": \"Because cue_1 is on (2, 1), perform MOVE_DOWN to move downward one cell to have the same horizontal axe with cue_1 (2, 4)\",
                         \"next_position\": \"(2, 4)\",
-                        \"cheese_location\": \"(2, 0)\"
-                        \"shock_location\": \"(2, 3)\",
+                        \"current_goal\": \"cue_1\",
+                        \"cheese_location\": \"Null\"
+                        \"shock_location\": \"Null\",
                     }}
                 \"
             TRY TO GENERATE AS LEAST TOKENS AS YOU CAN TO IMPROVE SPEED.
@@ -190,7 +192,7 @@ class LLMAgent:
         if llm_obs['reset'] == True:
             self.reset()
         else:
-            obs_message = 'KEEP INFERING'
+            obs_message = f'The agent is now at {llm_obs['position']} and about to {llm_obs['next_action']} to {llm_obs['next_position']} in order to find {llm_obs['current_goal']}'
 
             if llm_obs['position'] == str(self.env.cue_1_location):
                 self.message_history.append(SystemMessage(content='WHAT IS CUE 2 NAME?'))

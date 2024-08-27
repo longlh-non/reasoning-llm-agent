@@ -31,16 +31,36 @@ class Button:
 
 
 class POMDPGridWorldEnv(gym.Env):
-    def __init__(self, log_file="agent_movement_log.txt", is_using_llm=True, start_pos=(0, 0), cue_1_location=(2, 0), cue_2='L1', cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], reward_conditions = ['TOP', 'BOTTOM'], reward_locations=[(1, 5), (3, 5)], is_random_start = True, is_random_reward = True, is_reward_horizontal = False):
+    def __init__(self, log_file="agent_movement_log.txt",
+                is_using_llm=True, start_pos=(0, 0), 
+                cue_1_location=(2, 0), 
+                cue_2='L1', 
+                cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], 
+                reward_conditions = ['TOP', 'BOTTOM'], 
+                reward_locations=[(1, 5), (3, 5)], 
+                is_random_start = True, 
+                is_random_reward = True, 
+                is_reward_horizontal = False, 
+                is_random_grid = False,
+                is_random_reward_locs = False, 
+                is_random_cue_2_locs = False):
         super(POMDPGridWorldEnv, self).__init__()
 
         # Create a clock to control the frame rate
         self.clock = pygame.time.Clock()
 
-        # self.row = np.random.randint(6, 10)
-        # self.collumn = np.random.randint(6, 10)
-        self.row = 6
-        self.collumn = 8
+        # Random env
+        self.is_random_grid = is_random_grid
+        self.is_random_reward_locs = is_random_reward_locs
+        self.is_random_cue_2_locs = is_random_cue_2_locs
+
+        if is_random_grid:
+            self.row = np.random.randint(6, 10)
+            self.collumn = np.random.randint(6, 10)
+        else:
+            self.row = 6
+            self.collumn = 8
+        
         self.grid_world_dimension = (self.row, self.collumn)
 
         # Initialize the agent's position randomly
@@ -142,13 +162,20 @@ class POMDPGridWorldEnv(gym.Env):
 
         self.reset_log_file('agent_path.txt')
 
+        # Create a static env where the reward conditions are always TOP and BOTTOM at the same location
+        self.reward_conditions = ['TOP', 'BOTTOM']
+        # Random reward on the same collumn
+        self.reward_locations = [(1, 5), (3, 5)]
+
         if self.is_random_reward:
             self.is_reward_horizontal = random.choice([True, False])
             if self.is_reward_horizontal:
                 self.reward_conditions = ['LEFT', 'RIGHT']
+                # Random reward on the same row
                 self.reward_locations = [(2, 2), (2, 4)]
             else:
                 self.reward_conditions = ['TOP', 'BOTTOM']
+                # Random reward on the same collumn
                 self.reward_locations = [(1, 5), (3, 5)]
 
         random_reward = np.random.randint(0, 2)
