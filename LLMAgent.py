@@ -100,6 +100,8 @@ class LLMAgent:
 
     def reset_instruction(self):
         self.instructions = f"""
+            Let's think step-by-step. 
+            
             You are an agent navigating a grid world of dimension {self.env.grid_world_dimension} to find a CHEESE and avoiding a SHOCK. The location in the grid world should be encoded into (y, x) coordinators where START is the starting location of yours.
             
             You should visualize the grid world as a matrix.
