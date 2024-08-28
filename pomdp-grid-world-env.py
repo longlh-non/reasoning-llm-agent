@@ -33,17 +33,13 @@ class Button:
 class POMDPGridWorldEnv(gym.Env):
     def __init__(self, log_file="agent_movement_log.txt",
                 is_using_llm=True, start_pos=(0, 0), 
-                cue_1_location=(2, 0), 
-                cue_2='L1', 
-                cue_2_locations=[(0, 2), (1, 3), (3, 3), (4, 2)], 
-                reward_conditions = ['TOP', 'BOTTOM'], 
-                reward_locations=[(1, 5), (3, 5)], 
                 is_random_start = True, 
                 is_random_reward = True, 
                 is_reward_horizontal = False, 
                 is_random_grid = False,
                 is_random_reward_locs = False, 
                 is_random_cue_2_locs = False):
+        
         super(POMDPGridWorldEnv, self).__init__()
 
         # Create a clock to control the frame rate
@@ -74,29 +70,30 @@ class POMDPGridWorldEnv(gym.Env):
         # self.agent_pos = self.start
         self.agent_action = 'STAY'
 
-        self.cue_1_location = cue_1_location
+        self.cue_1_location =(2, 0)
+
         self.cue_1_obs = 'Null'
         self.is_cue_1_reached = False
 
         self.cue_2_loc_names = ['L1', 'L2', 'L3', 'L4']
+        self.cue_2_locations = [(0, 2), (1, 3), (3, 3), (4, 2)]
         self.cue_2_location = 'Null'
-        self.cue_2_name = cue_2
+        self.cue_2_name = 'L1'
         self.cue_2_obs = 'Null'
         self.is_cue_2_reached = False
-
         self.is_random_reward = is_random_reward
         self.is_reward_horizontal = is_reward_horizontal
-        self.reward_conditions = reward_conditions
-        self.reward_locations = reward_locations
+        self.reward_conditions = ['TOP', 'BOTTOM']
+        self.reward_locations = [(1, 5), (3, 5)]
         self.reward_location = 'Null'
         self.is_reward_horizontal = False 
         self.reward_obs = 'Null'
         self.prev_reward_location = 'Null'
 
-        if is_list_of_tuples(cue_2_locations) and len(cue_2_locations) == 4:
-            self.cue_2_locations = cue_2_locations
-        else:
-            self.cue_2_locations = [(0, 2), (1, 3), (3, 3), (4, 2)]
+        if self.is_reward_horizontal:
+            self.reward_conditions = ['LEFT', 'RIGHT']
+            self.reward_locations = [(2, 2), (2, 4)]
+
 
         self.action_space = spaces.Discrete(5)  # Actions: 0=up, 1=right, 2=down, 3=left, 4=stay
         self.observation_space = spaces.Box(low=0, high=1, shape=(self.row, self.collumn), dtype=np.float32)
@@ -162,27 +159,33 @@ class POMDPGridWorldEnv(gym.Env):
 
         self.reset_log_file('agent_path.txt')
 
-        # Create a static env where the reward conditions are always TOP and BOTTOM at the same location
-        self.reward_conditions = ['TOP', 'BOTTOM']
-        # Random reward on the same collumn
-        self.reward_locations = [(1, 5), (3, 5)]
-
         if self.is_random_reward:
             self.is_reward_horizontal = random.choice([True, False])
-            if self.is_reward_horizontal:
-                self.reward_conditions = ['LEFT', 'RIGHT']
-                # Random reward on the same row
-                self.reward_locations = [(2, 2), (2, 4)]
-            else:
-                self.reward_conditions = ['TOP', 'BOTTOM']
-                # Random reward on the same collumn
-                self.reward_locations = [(1, 5), (3, 5)]
+
 
         random_reward = np.random.randint(0, 2)
         
         # Define a goal position
         self.goal_pos = self.reward_locations[random_reward]
         return self._get_observation(), {}
+
+    def randomize_reward_locations(grid_rows, grid_columns, is_reward_horizontal):
+        if is_reward_horizontal:
+            # Choose a random row
+            random_row = np.random.randint(grid_rows)
+            # Randomly choose two different columns and sort them
+            cols = np.random.choice(grid_columns, size=2, replace=False)
+            col1, col2 = sorted(cols)
+            reward_locations = [(random_row, col1), (random_row, col2)]
+        else:
+            # Choose a random column
+            random_column = np.random.randint(grid_columns)
+            # Randomly choose two different rows and sort them
+            rows = np.random.choice(grid_rows, size=2, replace=False)
+            row1, row2 = sorted(rows)
+            reward_locations = [(row1, random_column), (row2, random_column)]
+        
+        return reward_locations
 
     def reset_log_file(self, file_name):
         with open(self.log_file, 'w') as file:

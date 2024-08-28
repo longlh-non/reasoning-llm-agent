@@ -69,7 +69,6 @@ def run_environment():
             infering_times+=1
             print("Infering time #", infering_times)
 
-            # ADD INFERING TIMES LIMITATION
             # reset = False
             events = pygame.event.get()
 
@@ -77,7 +76,6 @@ def run_environment():
                 if event.type == pygame.QUIT:
                     done = True
             
-                        
             if done:
                 break
 
