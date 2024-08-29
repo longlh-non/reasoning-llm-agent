@@ -32,12 +32,13 @@ class Button:
 
 class POMDPGridWorldEnv(gym.Env):
     def __init__(self, log_file="agent_movement_log.txt",
-                is_using_llm=True, start_pos=(0, 0), 
+                is_using_llm=True,
+                start_pos=(0, 0), 
                 is_random_start = True, 
                 is_random_reward = True, 
                 is_reward_horizontal = False, 
                 is_random_grid = False,
-                is_random_reward_locs = False, 
+                is_random_cue_1 = False, 
                 is_random_cue_2_locs = False):
         
         super(POMDPGridWorldEnv, self).__init__()
@@ -47,42 +48,22 @@ class POMDPGridWorldEnv(gym.Env):
 
         # Random env
         self.is_random_grid = is_random_grid
-        self.is_random_reward_locs = is_random_reward_locs
+        self.is_random_cue_1 = is_random_cue_1
         self.is_random_cue_2_locs = is_random_cue_2_locs
+        self.is_random_reward = is_random_reward
+        self.is_reward_horizontal = is_reward_horizontal
+        self.existed_locations = [] #only for randomize locations
 
-        if is_random_grid:
-            self.row = np.random.randint(6, 10)
-            self.collumn = np.random.randint(6, 10)
-        else:
-            self.row = 6
-            self.collumn = 8
-        
-        self.grid_world_dimension = (self.row, self.collumn)
-
-        # Initialize the agent's position randomly
-        self.is_random_start = is_random_start
-
-        self.start = start_pos
-
-        if self.is_random_start:
-            self.start = np.random.randint(0, self.row), np.random.randint(0, self.collumn)
-
-        # self.agent_pos = self.start
-        self.agent_action = 'STAY'
-
-        self.cue_1_location =(2, 0)
-
+            
+        # Cue, reward information
         self.cue_1_obs = 'Null'
         self.is_cue_1_reached = False
-
         self.cue_2_loc_names = ['L1', 'L2', 'L3', 'L4']
         self.cue_2_locations = [(0, 2), (1, 3), (3, 3), (4, 2)]
         self.cue_2_location = 'Null'
         self.cue_2_name = 'L1'
         self.cue_2_obs = 'Null'
         self.is_cue_2_reached = False
-        self.is_random_reward = is_random_reward
-        self.is_reward_horizontal = is_reward_horizontal
         self.reward_conditions = ['TOP', 'BOTTOM']
         self.reward_locations = [(1, 5), (3, 5)]
         self.reward_location = 'Null'
@@ -90,13 +71,45 @@ class POMDPGridWorldEnv(gym.Env):
         self.reward_obs = 'Null'
         self.prev_reward_location = 'Null'
 
+        if is_random_grid:
+            self.row = np.random.randint(6, 10)
+            self.column = np.random.randint(6, 10)
+        else:
+            self.row = 6
+            self.column = 8
+        
+        self.grid_world_dimension = (self.row, self.column)
+
+        # Initialize the agent's position randomly
+        self.is_random_start = is_random_start
+
+        self.start = start_pos
+
+        if self.is_random_start:
+            self.start = np.random.randint(0, self.row), np.random.randint(0, self.column)
+            self.existed_locations.append(self.start)
+
+        # self.agent_pos = self.start
+        self.agent_action = 'STAY'
+
+        self.cue_1_location = (2, 0)
+
+        if self.is_random_cue_1:
+            self.cue_1_location = self.random_location_excluding([self.start])
+            self.existed_locations.append(self.cue_1_location)
+
+        if self.is_random_cue_2_locs:
+            self.cue_2_locations = self.generate_multiple_locations(len(self.cue_2_loc_names), self.existed_locations)
+            print('self.cue_2_locations: ', self.cue_2_locations)
+
+
         if self.is_reward_horizontal:
             self.reward_conditions = ['LEFT', 'RIGHT']
             self.reward_locations = [(2, 2), (2, 4)]
 
 
         self.action_space = spaces.Discrete(5)  # Actions: 0=up, 1=right, 2=down, 3=left, 4=stay
-        self.observation_space = spaces.Box(low=0, high=1, shape=(self.row, self.collumn), dtype=np.float32)
+        self.observation_space = spaces.Box(low=0, high=1, shape=(self.row, self.column), dtype=np.float32)
 
         self.done = False
         self.is_using_llm = is_using_llm
@@ -118,24 +131,24 @@ class POMDPGridWorldEnv(gym.Env):
         self.grid_size = 700
         self.info_height = 50
         self.screen_size = self.grid_size + 2*self.info_height
-        self.cell_size = self.grid_size // max(self.row, self.collumn)
+        self.cell_size = self.grid_size // max(self.row, self.column)
         self.screen = pygame.display.set_mode((self.grid_size, self.screen_size))
-        self.cell_size = self.grid_size // max(self.row, self.collumn)
+        self.cell_size = self.grid_size // max(self.row, self.column)
         self.grid_lines = []
         self.cue_2_rects = []
         self.reward_rects = []
         pygame.display.set_caption("POMDP Grid World")
 
-
         self.log_file = log_file
         self.reset_log_file(self.log_file)  # Resets the log file at the start of each run
         self.reset_log_file('agent_path.txt')
+
         # Define parameters for the POMDP
         self.reset()
 
-    def reset_agent_pos(self):
+    def reset_env_pos(self):
         if self.is_random_start:
-            self.start = np.random.randint(0, self.row), np.random.randint(0, self.collumn)
+            self.start = np.random.randint(0, self.row), np.random.randint(0, self.column)
         self.agent_pos = self.start
         self.cue_1_obs = 'Null'
         self.cue_2_location = 'Null'
@@ -146,6 +159,7 @@ class POMDPGridWorldEnv(gym.Env):
         self.is_cue_1_reached = False
         self.is_cue_2_reached = False
         self.current_step = 0  # Reset the step count
+        self.existed_locations = [self.start]
 
     def reset_ui(self):
         self.cue_2_rects = []
@@ -154,22 +168,48 @@ class POMDPGridWorldEnv(gym.Env):
 
     def reset(self):
         self.done = False
-        self.reset_agent_pos()
-        self.reset_ui()
-
-        self.reset_log_file('agent_path.txt')
-
+        self.reset_env_pos()
+        if self.is_random_cue_1:
+            self.random_location_excluding(self.start)
+        if self.is_random_cue_2_locs:
+            self.generate_multiple_locations(len(self.cue_2_loc_names), self.existed_locations)            
         if self.is_random_reward:
             self.is_reward_horizontal = random.choice([True, False])
+            self.randomize_reward_locations(grid_columns=self.column, grid_rows=self.row , is_reward_horizontal=self.is_reward_horizontal)
 
+        self.reset_ui()
+        
+        self.reset_log()
 
         random_reward = np.random.randint(0, 2)
         
         # Define a goal position
         self.goal_pos = self.reward_locations[random_reward]
         return self._get_observation(), {}
+    
+    def reset_log(self):
+        self.reset_log_file('agent_path.txt')
 
-    def randomize_reward_locations(grid_rows, grid_columns, is_reward_horizontal):
+    # Random excluding existed location
+    def random_location_excluding(self, excluded_locations):
+        while True:
+            # Generate a random location
+            new_location = (np.random.randint(0, self.row), np.random.randint(0, self.column))
+            # Check if it is not in the excluded locations
+            if new_location not in excluded_locations:
+                return new_location
+
+    # Random multiple location excluding existed location
+    def generate_multiple_locations(self, number_of_locations, existed_locations):
+        generated_locations = []
+        while len(generated_locations) < number_of_locations:  # +1 to include the already added new_location
+            new_loc = self.random_location_excluding(existed_locations)
+            if new_loc not in existed_locations:
+                generated_locations.append(new_loc)
+                existed_locations.append(new_loc)
+        return generated_locations
+
+    def randomize_reward_locations(self, grid_columns, grid_rows, is_reward_horizontal):
         if is_reward_horizontal:
             # Choose a random row
             random_row = np.random.randint(grid_rows)
@@ -241,31 +281,10 @@ class POMDPGridWorldEnv(gym.Env):
                 self.is_cue_2_reached = True
                 self.random_obs('cue_2')
 
-            # Define the movement
-            # if self.agent_action == 0 or self.agent_action == 'MOVE_UP':  # Up
-            #     self.agent_pos = (max(0, self.agent_pos[0] - 1), self.agent_pos[1])
-            # elif self.agent_action == 1 or self.agent_action == 'MOVE_RIGHT':  # Right
-            #     self.agent_pos = (self.agent_pos[0], min(self.collumn - 1, self.agent_pos[1] + 1))
-            # elif self.agent_action == 2  or self.agent_action == 'MOVE_DOWN':  # Down
-            #     self.agent_pos = (min(self.row - 1, self.agent_pos[0] + 1), self.agent_pos[1])
-            # elif self.agent_action == 3  or self.agent_action == 'MOVE_LEFT':  # Left
-            #     self.agent_pos = (self.agent_pos[0], max(0, self.agent_pos[1] - 1))
-            # elif self.agent_action == 4  or self.agent_action == 'STAY':  # Stay
-            #     pass  # No change in position
-
             if tuple(self.agent_pos) not in self.path:
                 self.path.append(tuple(self.agent_pos))  # Add new position to the path
                 self.log_path(self.current_step, self.agent_pos)
-
-            # Check if the agent has reached the goal
-            # if self.agent_pos == self.goal_pos:
-            #     reward = 1
-            #     self.done = True
-            # else:
-            #     reward = 0
-
-            # @NOTE: here we use the same variable `reward_locations` to create both the agent's generative model (the `A` matrix) as well as the generative process.
-            # This is just for simplicity, but it's not necessary -  you could have the agent believe that the Cheese/Shock are actually stored in arbitrary, incorrect locations.
+                self.log_path('self.path: ', self.path)
             
             self.reward_obs = 'Null'
 
@@ -297,10 +316,6 @@ class POMDPGridWorldEnv(gym.Env):
             if self.reward_obs != 'Null':
                 reset = True
 
-            # current_location = self.agent_pos
-            # cue_1_obs = self.cue_1_obs
-            # cue_2_obs = self.cue_2_obs
-
             # Get the new observation
         observation = self._get_observation()
 
@@ -327,10 +342,6 @@ class POMDPGridWorldEnv(gym.Env):
         for line in self.grid_lines:
             pygame.draw.line(self.screen, (0, 0, 0), line[0], line[1])
 
-        # Draw the goal
-        # goal_rect = pygame.Rect(self.goal_pos[1] * cell_size, self.goal_pos[0] * cell_size, cell_size, cell_size)
-        # pygame.draw.rect(self.screen, (255, 0, 0), goal_rect)  # Red goal
-
         # Draw cue 1 with "C1" label
         cue_1_rect = pygame.Rect(self.cue_1_location[1] * self.cell_size, self.cue_1_location[0] * self.cell_size, self.cell_size, self.cell_size)
         pygame.draw.rect(self.screen, (227, 81, 23), cue_1_rect)
@@ -341,7 +352,7 @@ class POMDPGridWorldEnv(gym.Env):
         # Draw cue 2 locations
         if len(self.cue_2_rects) == 0:
             self.cue_2_rects = [pygame.Rect(loc[1] * self.cell_size, loc[0] * self.cell_size, self.cell_size, self.cell_size) for loc in self.cue_2_locations]
-
+        print('self.cue_2_locations:', self.cue_2_locations)
         for i, rect in enumerate(self.cue_2_rects):
             pygame.draw.rect(self.screen, (23, 173, 227), rect)
             text_surface = self.font.render(self.cue_2_loc_names[i], True, (0, 0, 0))
@@ -386,7 +397,6 @@ class POMDPGridWorldEnv(gym.Env):
         agent_text_rect = agent_text_surface.get_rect(center=agent_rect.center)
         self.screen.blit(agent_text_surface, agent_text_rect)
         
-        # ADD AN INFORMATION LINE AT THE BOTTOM OF THE POP UP
         info_text_surface = self.font.render(f"Current location: {self.agent_pos}, Action: {self.agent_action}, Cue 2: {self.cue_1_obs} - {self.cue_2_location}", True, (0, 0, 0))
         info_x = 10  # Padding from the left edge
         info_y = self.screen_size - self.info_height + 10  # Positioned at the bottom within the info area
@@ -451,8 +461,8 @@ class POMDPGridWorldEnv(gym.Env):
 
     def _get_observation(self):
         # Observation is a noisy version of the grid state (partially observable)
-        noise = np.random.normal(0, 0.1, (self.row, self.collumn))
-        grid = np.zeros((self.row, self.collumn))
+        noise = np.random.normal(0, 0.1, (self.row, self.column))
+        grid = np.zeros((self.row, self.column))
         # grid[self.agent_pos[0], self.agent_pos[1]] = 1
         # grid[self.goal_pos[0], self.goal_pos[1]] = 0.5
         return np.clip(grid + noise, 0, 1)

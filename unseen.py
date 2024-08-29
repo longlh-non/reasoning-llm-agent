@@ -34,7 +34,12 @@ def run_environment():
     llm = ChatOpenAI(model="gpt-4o-mini", model_kwargs={ "response_format": { "type": "json_object" }})
 
     # Create the environment
-    env = gym.make('POMDPGridWorldEnv-v0', start_pos = (5, 5), is_random_start = False, is_random_reward = False)
+    env = gym.make('POMDPGridWorldEnv-v0',
+                   is_random_grid = True,
+                   is_random_start = True,
+                   is_random_reward = True,
+                   is_random_cue_1 = True,
+                   is_random_cue_2_locs = True)
     observation, info = env.reset()
     env.render()  
 
