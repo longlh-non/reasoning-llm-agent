@@ -64,10 +64,8 @@ def run_environment():
                 reset = False
         
         while infering_times < maximum_infering_times and not reset:
-            infering_times+=1
             print("Infering time #", infering_times)
 
-            # reset = False
             events = pygame.event.get()
 
             for event in events:
@@ -95,8 +93,9 @@ def run_environment():
             print(f"Next action: {agent_response['next_action']}")
             
             env.render()
-            # print(f"Observation: {observation}, Action: {agent_response['action']}, Reward: {reward_obs}, Done: {done}")
-            
+
+            infering_times+=1
+
             # Control the frame rate (limit to 1 frames per second)
             env.clock.tick(32)
     

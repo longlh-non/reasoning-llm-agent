@@ -44,8 +44,8 @@ def run_environment():
     agent.reset()
     iteration_times = 0
     infering_times = 0
-    maximum_infering_times = 25
-    maximum_iterations = 25
+    maximum_infering_times = 50
+    maximum_iterations = 50
     reset = False
     print ('iteration_times < maximum_iterations: ', iteration_times < maximum_iterations)
     while iteration_times < maximum_iterations:
@@ -59,7 +59,6 @@ def run_environment():
                 reset = False
         
         while infering_times < maximum_infering_times and not reset:
-            infering_times+=1
             print("Infering time #", infering_times)
 
             # reset = False
@@ -92,6 +91,8 @@ def run_environment():
             env.render()
             # print(f"Observation: {observation}, Action: {agent_response['action']}, Reward: {reward_obs}, Done: {done}")
             
+            infering_times+=1
+
             # Control the frame rate (limit to 1 frames per second)
             env.clock.tick(32)
     

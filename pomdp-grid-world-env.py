@@ -89,19 +89,12 @@ class POMDPGridWorldEnv(gym.Env):
             self.start = np.random.randint(0, self.row), np.random.randint(0, self.column)
             self.existed_locations.append(self.start)
 
-        # self.agent_pos = self.start
+        self.agent_pos = self.start
+        self.environment_setup = {}
+        
         self.agent_action = 'STAY'
 
         self.cue_1_location = (2, 0)
-
-        if self.is_random_cue_1:
-            self.cue_1_location = self.random_location_excluding([self.start])
-            self.existed_locations.append(self.cue_1_location)
-
-        if self.is_random_cue_2_locs:
-            self.cue_2_locations = self.generate_multiple_locations(len(self.cue_2_loc_names), self.existed_locations)
-            print('self.cue_2_locations: ', self.cue_2_locations)
-
 
         if self.is_reward_horizontal:
             self.reward_conditions = ['LEFT', 'RIGHT']
@@ -115,12 +108,6 @@ class POMDPGridWorldEnv(gym.Env):
         self.is_using_llm = is_using_llm
 
         self.result = 'Null'
-
-        self.environment_setup = {
-            "grid_world_dimension": self.grid_world_dimension,
-            "start": self.start,
-            "cue_1_location": self.cue_1_location
-        }
 
         # Increment the step counter
         self.current_step = 0
@@ -170,15 +157,20 @@ class POMDPGridWorldEnv(gym.Env):
         self.done = False
         self.reset_env_pos()
         if self.is_random_cue_1:
-            self.random_location_excluding(self.start)
+            self.cue_1_location = self.random_location_excluding(self.existed_locations)
         if self.is_random_cue_2_locs:
-            self.generate_multiple_locations(len(self.cue_2_loc_names), self.existed_locations)            
+            self.cue_2_locations = self.generate_multiple_locations(len(self.cue_2_loc_names), self.existed_locations)            
         if self.is_random_reward:
             self.is_reward_horizontal = random.choice([True, False])
-            self.randomize_reward_locations(grid_columns=self.column, grid_rows=self.row , is_reward_horizontal=self.is_reward_horizontal)
+            self.reward_locations = self.randomize_reward_locations(grid_columns=self.column, grid_rows=self.row , is_reward_horizontal=self.is_reward_horizontal)
+
+        self.environment_setup = {
+            "grid_world_dimension": self.grid_world_dimension,
+            "start": self.start,
+            "cue_1_location": self.cue_1_location
+        }
 
         self.reset_ui()
-        
         self.reset_log()
 
         random_reward = np.random.randint(0, 2)
@@ -211,6 +203,7 @@ class POMDPGridWorldEnv(gym.Env):
 
     def randomize_reward_locations(self, grid_columns, grid_rows, is_reward_horizontal):
         if is_reward_horizontal:
+            self.reward_conditions = ['LEFT', 'RIGHT']
             # Choose a random row
             random_row = np.random.randint(grid_rows)
             # Randomly choose two different columns and sort them
@@ -218,6 +211,7 @@ class POMDPGridWorldEnv(gym.Env):
             col1, col2 = sorted(cols)
             reward_locations = [(random_row, col1), (random_row, col2)]
         else:
+            self.reward_conditions = ['TOP', 'BOTTOM']
             # Choose a random column
             random_column = np.random.randint(grid_columns)
             # Randomly choose two different rows and sort them
