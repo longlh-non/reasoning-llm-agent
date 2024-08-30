@@ -194,7 +194,7 @@ class LLMAgent:
         if llm_obs['reset'] == True:
             self.reset()
         else:
-            obs_message = f'The agent is now at {llm_obs['position']} and about to {llm_obs['next_action']} to {llm_obs['next_position']} in order to find {llm_obs['current_goal']}'
+            obs_message = f'The agent is now at {llm_obs['position']} and about to {llm_obs['next_action']} to {llm_obs['next_position']} in order to find {llm_obs['current_goal']}. Please move to {llm_obs['next_position']} and infer for the next step. If you are trying to reach cheese after reaching cue 2 and shock is on the way. Find another path.'
 
             if llm_obs['position'] == str(self.env.cue_1_location):
                 self.message_history.append(SystemMessage(content='WHAT IS CUE 2 NAME?'))

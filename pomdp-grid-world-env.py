@@ -272,7 +272,6 @@ class POMDPGridWorldEnv(gym.Env):
         else:
             self.agent_action = action['next_action']
             self.agent_pos = eval(action['position'])
-            
             if self.agent_pos == self.cue_1_location and self.is_cue_1_reached != True:
                 self.is_cue_1_reached = True
                 self.random_obs('cue_1')
@@ -418,11 +417,11 @@ class POMDPGridWorldEnv(gym.Env):
         sidebar_rect = pygame.Rect(self.screen_width - self.sidebar_width, 0, self.sidebar_width, self.screen_height)
         self.screen.fill(sidebar_color, sidebar_rect)
 
-        # Append a new block of text for each loop (for demonstration)
-        if len(self.steps_info) > 0:
-            self.text_blocks.append(f"Step #{self.steps_info[len(self.steps_info) - 1]['infering_times']}, Position: {self.steps_info[len(self.steps_info)  - 1]['position']}")
-            self.text_blocks.append(f"Next Action: {self.steps_info[len(self.steps_info) - 1]['next_action']}, Next Position: {self.steps_info[len(self.steps_info)  - 1]['next_position']}")
-            self.text_blocks.append(f"Action Reason: {self.steps_info[len(self.steps_info) - 1]['action_reason']}")
+        # # Append a new block of text for each loop (for demonstration)
+        # if len(self.steps_info) > 0:
+        #     self.text_blocks.append(f"Step #{self.steps_info[len(self.steps_info) - 1]['infering_times']}, Position: {self.steps_info[len(self.steps_info)  - 1]['position']}")
+        #     self.text_blocks.append(f"Next Action: {self.steps_info[len(self.steps_info) - 1]['next_action']}, Next Position: {self.steps_info[len(self.steps_info)  - 1]['next_position']}")
+        #     self.text_blocks.append(f"Action Reason: {self.steps_info[len(self.steps_info) - 1]['action_reason']}")
 
         # self.draw_sidebar(self.screen, sidebar_rect, sidebar_color, self.text_blocks, self.font)
         
