@@ -53,7 +53,6 @@ class POMDPGridWorldEnv(gym.Env):
         self.is_random_reward = is_random_reward
         self.is_reward_horizontal = is_reward_horizontal
         self.existed_locations = [] #only for randomize locations
-
             
         # Cue, reward information
         self.cue_1_obs = 'Null'
@@ -70,6 +69,7 @@ class POMDPGridWorldEnv(gym.Env):
         self.is_reward_horizontal = False 
         self.reward_obs = 'Null'
         self.prev_reward_location = 'Null'
+        self.steps_info = []
 
         if is_random_grid:
             self.row = np.random.randint(6, 10)
@@ -91,7 +91,7 @@ class POMDPGridWorldEnv(gym.Env):
 
         self.agent_pos = self.start
         self.environment_setup = {}
-        
+
         self.agent_action = 'STAY'
 
         self.cue_1_location = (2, 0)
@@ -116,14 +116,17 @@ class POMDPGridWorldEnv(gym.Env):
         pygame.init()
         self.font = pygame.font.SysFont(None, 24)
         self.grid_size = 700
+        self.sidebar_width = 800
         self.info_height = 50
-        self.screen_size = self.grid_size + 2*self.info_height
+        self.screen_width = 1500
+        self.screen_height = self.grid_size + 2*self.info_height
         self.cell_size = self.grid_size // max(self.row, self.column)
-        self.screen = pygame.display.set_mode((self.grid_size, self.screen_size))
-        self.cell_size = self.grid_size // max(self.row, self.column)
+        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         self.grid_lines = []
         self.cue_2_rects = []
         self.reward_rects = []
+        self.text_blocks = []
+        self.scroll_y = 0
         pygame.display.set_caption("POMDP Grid World")
 
         self.log_file = log_file
@@ -151,6 +154,7 @@ class POMDPGridWorldEnv(gym.Env):
     def reset_ui(self):
         self.cue_2_rects = []
         self.reward_rects = []
+        self.text_blocks = []
         self.path = [tuple(self.agent_pos)]  # Reset path and include the starting location
 
     def reset(self):
@@ -169,6 +173,8 @@ class POMDPGridWorldEnv(gym.Env):
             "start": self.start,
             "cue_1_location": self.cue_1_location
         }
+
+        self.steps_info = []
 
         self.reset_ui()
         self.reset_log()
@@ -256,11 +262,11 @@ class POMDPGridWorldEnv(gym.Env):
             result = True 
         
     def step(self, action): 
-        print('response: ', action)
-        print('infering_times: ', action['infering_times'])
         reset = False
 
-        if action['infering_times'] == 25:
+        self.steps_info.append(action)
+
+        if action['infering_times'] == 50:
             reset = True
 
         else:
@@ -393,25 +399,59 @@ class POMDPGridWorldEnv(gym.Env):
         
         info_text_surface = self.font.render(f"Current location: {self.agent_pos}, Action: {self.agent_action}, Cue 2: {self.cue_1_obs} - {self.cue_2_location}", True, (0, 0, 0))
         info_x = 10  # Padding from the left edge
-        info_y = self.screen_size - self.info_height + 10  # Positioned at the bottom within the info area
+        info_y = self.screen_height - self.info_height + 10  # Positioned at the bottom within the info area
         self.screen.blit(info_text_surface, (info_x, info_y))
         
         info_1_text_surface = self.font.render(f"Reward condition: {self.cue_2_obs} - {self.reward_location}", True, (0, 0, 0))
         info_1_x = 10  # Padding from the left edge
-        info_1_y = self.screen_size - 1.5*self.info_height + 10 # Positioned at the bottom within the info area
+        info_1_y = self.screen_height - 1.5*self.info_height + 10 # Positioned at the bottom within the info area
         self.screen.blit(info_1_text_surface, (info_1_x, info_1_y))
 
         info_2_text_surface_2 = self.font.render(f"Random start: {self.is_random_start}", True, (0, 0, 0))
         info_2_x = 10  # Padding from the left edge
-        info_2_y = self.screen_size - 2*self.info_height + 10  # Positioned at the bottom within the info area
+        info_2_y = self.screen_height - 2*self.info_height + 10  # Positioned at the bottom within the info area
         self.screen.blit(info_2_text_surface_2, (info_2_x, info_2_y))
+
+
+        # Fill the main screen and sidebar area
+        sidebar_color = (255, 255, 255)  # Light grey sidebar
+        sidebar_rect = pygame.Rect(self.screen_width - self.sidebar_width, 0, self.sidebar_width, self.screen_height)
+        self.screen.fill(sidebar_color, sidebar_rect)
+
+        # Append a new block of text for each loop (for demonstration)
+        if len(self.steps_info) > 0:
+            self.text_blocks.append(f"Step #{self.steps_info[len(self.steps_info) - 1]['infering_times']}, Position: {self.steps_info[len(self.steps_info)  - 1]['position']}")
+            self.text_blocks.append(f"Next Action: {self.steps_info[len(self.steps_info) - 1]['next_action']}, Next Position: {self.steps_info[len(self.steps_info)  - 1]['next_position']}")
+            self.text_blocks.append(f"Action Reason: {self.steps_info[len(self.steps_info) - 1]['action_reason']}")
+
+        # self.draw_sidebar(self.screen, sidebar_rect, sidebar_color, self.text_blocks, self.font)
         
         if (self.reward_obs != 'Null'):
             self.show_reward_popup()
             self.done = True
             self.reset()        
         
+        self.update_display()
+
+    def draw_sidebar(self, screen, sidebar_rect, sidebar_color, text_blocks, font):
+        # Fill sidebar
+        screen.fill(sidebar_color, sidebar_rect)
+
+        # Draw text in the sidebar with scrolling
+        y_offset = 10 + self.scroll_y
+        for text in text_blocks:
+            text_surface = font.render(text, True, (0, 0, 0))  # Black text
+            screen.blit(text_surface, (sidebar_rect.x + 20, y_offset))
+            y_offset += text_surface.get_height() + 5
+
+    def update_display(self):
         pygame.display.flip()
+
+    def update_scroll(self, event):
+        if event.button == 4:  # Scroll up
+            self.scroll_y = min(self.scroll_y + 20, 0)
+        elif event.button == 5:  # Scroll down
+            self.scroll_y -= 20
 
     def random_obs(self, type):
         obs = ''
@@ -440,8 +480,8 @@ class POMDPGridWorldEnv(gym.Env):
         BUTTON_LABELS = self.reward_obs
 
         # Calculate center position for the popup
-        center_x = (self.screen_size - popup_width) // 2
-        center_y = (self.screen_size - popup_height)
+        center_x = (self.screen_height - popup_width) // 2
+        center_y = (self.screen_height - popup_height)
 
         text_surface = self.font.render(BUTTON_LABELS, True, (0, 0, 0))
         text_rect = text_surface.get_rect(center=(popup_width//2, popup_height//2))

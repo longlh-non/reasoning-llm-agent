@@ -34,12 +34,7 @@ def run_environment():
     llm = ChatOpenAI(model="gpt-4o-mini", model_kwargs={ "response_format": { "type": "json_object" }})
 
     # Create the environment
-    env = gym.make('POMDPGridWorldEnv-v0',
-                   is_random_grid = True,
-                   is_random_start = True,
-                   is_random_reward = True,
-                   is_random_cue_1 = True,
-                   is_random_cue_2_locs = True)
+    env = gym.make('POMDPGridWorldEnv-v0', start_pos = (5, 5), is_random_start = False, is_random_reward = False)
     observation, info = env.reset()
     env.render()  
 
@@ -49,8 +44,8 @@ def run_environment():
     agent.reset()
     iteration_times = 0
     infering_times = 0
-    maximum_infering_times = 25
-    maximum_iterations = 25
+    maximum_infering_times = 50
+    maximum_iterations = 50
     reset = False
     print ('iteration_times < maximum_iterations: ', iteration_times < maximum_iterations)
     while iteration_times < maximum_iterations:
@@ -66,16 +61,16 @@ def run_environment():
         while infering_times < maximum_infering_times and not reset:
             print("Infering time #", infering_times)
 
+            # reset = False
             events = pygame.event.get()
 
             for event in events:
                 if event.type == pygame.QUIT:
                     done = True
                 # elif event.type == pygame.MOUSEBUTTONDOWN:
-                #     print('heerrererererere')
                 #     # Scroll the sidebar with mouse wheel
                 #     env.update_scroll(event)
-
+            
             if done:
                 break
 
@@ -97,6 +92,7 @@ def run_environment():
             print(f"Next action: {agent_response['next_action']}")
             
             env.render()
+            # print(f"Observation: {observation}, Action: {agent_response['action']}, Reward: {reward_obs}, Done: {done}")
 
             infering_times+=1
 
