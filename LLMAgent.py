@@ -206,7 +206,6 @@ class LLMAgent:
             self.message_history.append(HumanMessage(content=obs_message))
             self.log_conversation(obs_message)
             
-            # CHECK IF LLM CAN UNDERSTAND OR NOT
             if llm_obs['position'] == str(self.env.prev_reward_location):
                 if self.env.reward_obs == 'SHOCK':    
                     self.message_history.append(SystemMessage(content='EXPERIMENT FAILED'))
