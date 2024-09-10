@@ -48,7 +48,7 @@ def run_environment():
 
     agent = LLMAgent(llm, env)
     agent.reset()
-    print ('iteration_times < maximum_iterations: ', iteration_times < maximum_iterations)
+    print ('iteration_times < maximum_iterations: ', iteration_times < maximum_iterations, type='seen')
     while iteration_times < maximum_iterations:
         iteration_times+=1
         print("Experiment #", iteration_times)

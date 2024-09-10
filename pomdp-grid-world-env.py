@@ -27,7 +27,8 @@ class POMDPGridWorldEnv(gym.Env):
                 is_random_cue_1 = False, 
                 is_random_cue_2_locs = False,
                 step_limitation = 50,
-                iteration_limitation = 50):
+                iteration_limitation = 50,
+                type='unseen'):
         
         super(POMDPGridWorldEnv, self).__init__()
 
@@ -37,6 +38,7 @@ class POMDPGridWorldEnv(gym.Env):
         self.iteration_limitation = iteration_limitation
 
         # Random env
+        self.type = type
         self.is_random_grid = is_random_grid
         self.is_random_cue_1 = is_random_cue_1
         self.is_random_cue_2_locs = is_random_cue_2_locs
@@ -198,6 +200,8 @@ class POMDPGridWorldEnv(gym.Env):
         # Define a goal position
         self.goal_pos = self.reward_locations[random_reward]
         self.current_iteration+=1
+        if self.current_iteration == self.iteration_limitation:
+            self.log_info(self.current_exp_results, f'result_{self.type}')
         return self._get_observation(), {'current_step': self.current_step, 'current_iteration': self.current_iteration}
     
     def reset_log(self):
@@ -259,8 +263,8 @@ class POMDPGridWorldEnv(gym.Env):
             log_entry = f"Step {step_count}: Agent position {agent_pos}\n"
             file.write(log_entry)
 
-    def log_info(self, info):
-        with open('debug_env_info.txt', 'a') as file:
+    def log_info(self, info, file_name):
+        with open(file_name, 'a') as file:
             file.write(f"{info}\n")
 
     def log_experiment_results(self, info):

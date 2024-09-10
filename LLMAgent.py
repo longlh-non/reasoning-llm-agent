@@ -14,7 +14,6 @@ class LLMAgent:
         return env.unwrapped.__doc__
 
     # GIVE THE LLM AN EXAMPLE
-    # THINK ABOUT TREE OF THOUGHT
     def __init__(self, model, env):
         self.model = model
         self.env = env
@@ -97,8 +96,8 @@ class LLMAgent:
         self.message_history = [
             SystemMessage(content=self.instructions),
         ]
-        self.reset_log_file()
-        self.log_conversation(self.instructions)
+        # self.reset_log_file()
+        self.log_conversation(f'INSTRUCTION: {self.instructions}')
 
     def reset_instruction(self):
         self.instructions = f"""
@@ -195,32 +194,38 @@ class LLMAgent:
             self.reset()
         else:
             obs_message = f'The agent is now at {llm_obs['position']} and about to {llm_obs['next_action']} to {llm_obs['next_position']} in order to find {llm_obs['current_goal']}. Please move to {llm_obs['next_position']} and infer for what action should be taken to further reduce uncertainty and find the current goal. If you are trying to reach cheese after reaching cue 2 and shock is on the way. Find another path.'
-
+            system_message = ''
+            
             if llm_obs['position'] == str(self.env.cue_1_location):
-                self.message_history.append(SystemMessage(content='WHAT IS CUE 2 NAME?'))
+                system_message = 'WHAT IS CUE 2 NAME?'
                 obs_message = f"These are cue 2 possible locations: {{\"L1\": {self.env.cue_2_locations[0]}, \"L2\": {self.env.cue_2_locations[1]}, \"L3\": {self.env.cue_2_locations[2]}, \"L4\": {self.env.cue_2_locations[3]}}} and the one specified as cue_2 is {self.env.cue_1_obs}, the other locations are empty now. Keep Infering until reaching {self.env.cue_1_obs}"
 
             if llm_obs['position'] == str(self.env.cue_2_location):
-                self.message_history.append(SystemMessage(content='WHAT IS REWARD CONDITION?'))
+                system_message='WHAT IS REWARD CONDITION?'
                 obs_message = f"These are possible reward locations: {{\"{self.env.reward_conditions[0]}\": {self.env.reward_locations[0]}, \"{self.env.reward_conditions[1]}\": {self.env.reward_locations[1]}}} and the CHEESE is {self.env.cue_2_obs} so that the SHOCK is the other one in possible reward locations is SHOCK. Keep Infering until reaching the CHEESE and try to avoid the SHOCK"
+
+            if system_message != '':
+                self.message_history.append(SystemMessage(content=system_message))
+                self.log_conversation(f'AGENT: {system_message}')
+                
             self.message_history.append(HumanMessage(content=obs_message))
-            self.log_conversation(obs_message)
+            self.log_conversation(f'HUMAN: {obs_message}')
             
             if llm_obs['position'] == str(self.env.prev_reward_location):
                 if self.env.reward_obs == 'SHOCK':    
                     self.message_history.append(SystemMessage(content='EXPERIMENT FAILED'))
                 else:
                     self.message_history.append(SystemMessage(content='EXPERIMENT SUCCESS'))
+                    
                 obs_message = f"Let try every step again with a new starting location: {self.env.start}"
                 
-                # if self.env.is_random_start == False:
                 self.reset()
 
         return obs_message
     
     def _act(self):
         result_message = self.model.invoke(self.message_history)
-        self.log_conversation(result_message)
+        self.log_conversation(f'AGENT: {result_message}')
         self.message_history.append(result_message.content)
         # action = int(self.action_parser.parse(act_message.content)["action"])
         agent_response = json.loads(result_message.content)
