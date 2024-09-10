@@ -11,6 +11,7 @@ from langchain.agents import AgentExecutor, create_react_agent, Tool
 from langchain.agents.format_scratchpad import format_to_openai_function_messages
 from typing import List
 from LLMAgent import LLMAgent
+from LLMActiveInferenceAgent import LLMActiveInferenceAgent
 from utils import parse
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -40,7 +41,7 @@ def run_environment():
 
     done = False
 
-    agent = LLMAgent(llm, env)
+    agent = LLMActiveInferenceAgent(llm, env)
     agent.reset()
     iteration_times = 0
     infering_times = 0

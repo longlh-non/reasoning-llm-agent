@@ -63,7 +63,7 @@ class POMDPGridWorldEnv(gym.Env):
         self.cue_2_name = 'L1'
         self.cue_2_obs = 'Null'
         self.is_cue_2_reached = False
-        self.reward_conditions = ['TOP', 'BOTTOM']
+        self.reward_conditions = ['FIRST', 'SECOND']
         self.reward_locations = [(1, 5), (3, 5)]
         self.reward_location = 'Null'
         self.is_reward_horizontal = False 
@@ -97,7 +97,6 @@ class POMDPGridWorldEnv(gym.Env):
         self.cue_1_location = (2, 0)
 
         if self.is_reward_horizontal:
-            self.reward_conditions = ['LEFT', 'RIGHT']
             self.reward_locations = [(2, 2), (2, 4)]
 
 
@@ -209,7 +208,6 @@ class POMDPGridWorldEnv(gym.Env):
 
     def randomize_reward_locations(self, grid_columns, grid_rows, is_reward_horizontal):
         if is_reward_horizontal:
-            self.reward_conditions = ['LEFT', 'RIGHT']
             # Choose a random row
             random_row = np.random.randint(grid_rows)
             # Randomly choose two different columns and sort them
@@ -217,7 +215,6 @@ class POMDPGridWorldEnv(gym.Env):
             col1, col2 = sorted(cols)
             reward_locations = [(random_row, col1), (random_row, col2)]
         else:
-            self.reward_conditions = ['TOP', 'BOTTOM']
             # Choose a random column
             random_column = np.random.randint(grid_columns)
             # Randomly choose two different rows and sort them
