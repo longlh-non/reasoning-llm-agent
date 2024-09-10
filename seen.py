@@ -35,19 +35,19 @@ def run_environment():
     llm = ChatOpenAI(model="gpt-4o-mini", model_kwargs={ "response_format": { "type": "json_object" }})
 
     # Create the environment
-    env = gym.make('POMDPGridWorldEnv-v0', start_pos = (5, 5), is_random_start = False, is_random_reward = False)
+    iteration_times = 0
+    infering_times = 0
+    maximum_infering_times = 30
+    maximum_iterations = 50
+    reset = False
+    env = gym.make('POMDPGridWorldEnv-v0', start_pos = (5, 5), is_random_start = False, is_random_reward = False, maximum_infering_times = maximum_infering_times)
     observation, info = env.reset()
     env.render()  
 
     done = False
 
-    agent = LLMActiveInferenceAgent(llm, env)
+    agent = LLMAgent(llm, env)
     agent.reset()
-    iteration_times = 0
-    infering_times = 0
-    maximum_infering_times = 50
-    maximum_iterations = 50
-    reset = False
     print ('iteration_times < maximum_iterations: ', iteration_times < maximum_iterations)
     while iteration_times < maximum_iterations:
         iteration_times+=1
@@ -59,7 +59,7 @@ def run_environment():
                 agent.reset()
                 reset = False
         
-        while infering_times < maximum_infering_times and not reset:
+        while infering_times <= maximum_infering_times:
             print("Infering time #", infering_times)
 
             # reset = False
@@ -68,9 +68,6 @@ def run_environment():
             for event in events:
                 if event.type == pygame.QUIT:
                     done = True
-                # elif event.type == pygame.MOUSEBUTTONDOWN:
-                #     # Scroll the sidebar with mouse wheel
-                #     env.update_scroll(event)
             
             if done:
                 break

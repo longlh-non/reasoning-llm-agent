@@ -6,29 +6,15 @@ from utils import is_list_of_tuples
 import gymnasium as gym
 import random
 import sys
+import matplotlib
+import matplotlib.backends.backend_agg as agg
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 # Define constants
 SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 BUTTON_WIDTH, BUTTON_HEIGHT = 80, 30
 BUTTON_SPACING = 10
-
-# Button class
-class Button:
-    def __init__(self, x, y, width, height, color, label, font):
-        self.rect = pygame.Rect(x, y, width, height)
-        self.color = color
-        self.label = label
-        self.font = font
-        self.text = self.font.render(label, True, (255, 255, 255))
-        self.text_rect = self.text.get_rect(center=self.rect.center)
-
-    def draw(self, screen):
-        pygame.draw.rect(screen, self.color, self.rect)
-        screen.blit(self.text, self.text_rect)
-
-    def is_clicked(self, pos):
-        return self.rect.collidepoint(pos)
-
 
 class POMDPGridWorldEnv(gym.Env):
     def __init__(self, log_file="agent_movement_log.txt",
@@ -39,12 +25,14 @@ class POMDPGridWorldEnv(gym.Env):
                 is_reward_horizontal = False, 
                 is_random_grid = False,
                 is_random_cue_1 = False, 
-                is_random_cue_2_locs = False):
+                is_random_cue_2_locs = False,
+                maximum_infering_times = 50):
         
         super(POMDPGridWorldEnv, self).__init__()
 
         # Create a clock to control the frame rate
         self.clock = pygame.time.Clock()
+        self.maximum_infering_times = maximum_infering_times
 
         # Random env
         self.is_random_grid = is_random_grid
@@ -127,6 +115,16 @@ class POMDPGridWorldEnv(gym.Env):
         self.text_blocks = []
         self.scroll_y = 0
         pygame.display.set_caption("POMDP Grid World")
+
+        # Result plotting
+        self.result = False
+        self.sr = 0
+        self.gc = 0
+        self.total_sr = 0
+        self.total_gc = 0
+        self.ne = 0
+        self.current_result = 0
+        self.current_exp_results = [0]
 
         self.log_file = log_file
         self.reset_log_file(self.log_file)  # Resets the log file at the start of each run
@@ -263,7 +261,8 @@ class POMDPGridWorldEnv(gym.Env):
 
         self.steps_info.append(action)
 
-        if action['infering_times'] == 50:
+        if action['infering_times'] == self.maximum_infering_times:
+            self.reset()
             reset = True
 
         else:
@@ -271,10 +270,12 @@ class POMDPGridWorldEnv(gym.Env):
             self.agent_pos = eval(action['position'])
             if self.agent_pos == self.cue_1_location and self.is_cue_1_reached != True:
                 self.is_cue_1_reached = True
+                self.current_result = 1
                 self.random_obs('cue_1')
 
             if self.agent_pos == self.cue_2_location and self.is_cue_1_reached and self.is_cue_2_reached != True:
                 self.is_cue_2_reached = True
+                self.current_result = 2
                 self.random_obs('cue_2')
 
             if tuple(self.agent_pos) not in self.path:
@@ -285,34 +286,28 @@ class POMDPGridWorldEnv(gym.Env):
             self.reward_obs = 'Null'
 
             if self.is_cue_2_reached:
-                if self.is_reward_horizontal:
-                    if self.agent_pos == self.reward_locations[0]:
-                        if self.cue_2_obs == 'LEFT':
-                            self.reward_obs = 'CHEESE'
-                        else:
-                            self.reward_obs = 'SHOCK'
-                    elif self.agent_pos == self.reward_locations[1]:
-                        if self.cue_2_obs == 'RIGHT':
-                            self.reward_obs = 'CHEESE'
-                        else:
-                            self.reward_obs = 'SHOCK'
-                else:
-                    if self.agent_pos == self.reward_locations[0]:
+                if self.agent_pos == self.reward_locations[0]:
+                    if self.cue_2_obs == 'FIRST':
+                        self.reward_obs = 'CHEESE'
+                    else:
+                        self.reward_obs = 'SHOCK'
+                elif self.agent_pos == self.reward_locations[1]:
+                    if self.cue_2_obs == 'SECOND':
+                        self.reward_obs = 'CHEESE'
+                    else:
+                        self.reward_obs = 'SHOCK'
 
-                        if self.cue_2_obs == 'TOP':
-                            self.reward_obs = 'CHEESE'
-                        else:
-                            self.reward_obs = 'SHOCK'
-                    elif self.agent_pos == self.reward_locations[1]:
-                        if self.cue_2_obs == 'BOTTOM':
-                            self.reward_obs = 'CHEESE'
-                        else:
-                            self.reward_obs = 'SHOCK'
 
             if self.reward_obs != 'Null':
-                reset = True
+                if self.reward_obs == 'CHEESE':
+                    self.current_result = 4
+                if self.reward_obs == 'SHOCK':
+                    self.current_result = 3
 
-            # Get the new observation
+                reset = True
+        if reset == True:
+            self.current_exp_results.append(self.current_result)
+        # Get the new observation
         observation = self._get_observation()
 
         # Log the agent's movement after the step
@@ -321,7 +316,6 @@ class POMDPGridWorldEnv(gym.Env):
         # Increment the step counter
         self.current_step += 1
         return observation, self.reward_obs, self.done, { 'reset': reset }
-
 
     def render(self, mode='human'):
         self.screen.fill((255, 255, 255))  # White background
@@ -414,40 +408,67 @@ class POMDPGridWorldEnv(gym.Env):
         sidebar_rect = pygame.Rect(self.screen_width - self.sidebar_width, 0, self.sidebar_width, self.screen_height)
         self.screen.fill(sidebar_color, sidebar_rect)
 
-        # # Append a new block of text for each loop (for demonstration)
-        # if len(self.steps_info) > 0:
-        #     self.text_blocks.append(f"Step #{self.steps_info[len(self.steps_info) - 1]['infering_times']}, Position: {self.steps_info[len(self.steps_info)  - 1]['position']}")
-        #     self.text_blocks.append(f"Next Action: {self.steps_info[len(self.steps_info) - 1]['next_action']}, Next Position: {self.steps_info[len(self.steps_info)  - 1]['next_position']}")
-        #     self.text_blocks.append(f"Action Reason: {self.steps_info[len(self.steps_info) - 1]['action_reason']}")
-
-        # self.draw_sidebar(self.screen, sidebar_rect, sidebar_color, self.text_blocks, self.font)
+        self.draw_sidebar(self.screen, sidebar_rect, sidebar_color)
         
         if (self.reward_obs != 'Null'):
             self.show_reward_popup()
             self.done = True
-            self.reset()        
+            self.reset()
         
         self.update_display()
 
-    def draw_sidebar(self, screen, sidebar_rect, sidebar_color, text_blocks, font):
+    def draw_sidebar(self, screen, sidebar_rect, sidebar_color):
         # Fill sidebar
         screen.fill(sidebar_color, sidebar_rect)
-
+        plot_position = (sidebar_rect.x, 50)  # Adjust as needed
         # Draw text in the sidebar with scrolling
-        y_offset = 10 + self.scroll_y
-        for text in text_blocks:
-            text_surface = font.render(text, True, (0, 0, 0))  # Black text
-            screen.blit(text_surface, (sidebar_rect.x + 20, y_offset))
-            y_offset += text_surface.get_height() + 5
+        self.draw_plot_on_pygame(self.screen, plot_position, np.arange(0, len(self.current_exp_results)), self.current_exp_results)
+
+    def draw_plot_on_pygame(self, screen, plot_position, x_values = np.arange(0, 51), y_values = np.arange(0, 51)):
+        # Create a matplotlib figure
+        fig, ax = plt.subplots(figsize=(8, 6))  # Adjust the figsize to make the plot bigger (width=8, height=6)
+
+        # Plotting the custom values
+        ax.plot(x_values, y_values, marker='o', linestyle='-', color='b')  # Adjust marker and line style as needed
+        
+        # Set the labels for the axes
+        ax.set_xlabel('Inferring Times')
+        ax.set_ylabel('Results')
+        
+        # Set custom labels for the Y-axis ticks
+        ax.set_yticks([1, 2, 3, 4])
+        ax.set_yticklabels([
+            'Cue 1',
+            'Cue 2',
+            'Shock',
+            'Chees'
+        ])
+
+        # Ensure X-axis has integer values only
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        # Ensure X-axis has continuous integer values only greater than 0
+        ax.set_xlim(left=0)  # Ensure X-axis starts from 0 to show the root (origin)
+
+        # Ensure grid lines or ticks are correctly placed
+        ax.yaxis.set_ticks_position('left')  # Show ticks only on the left spine
+        ax.xaxis.set_ticks_position('bottom')  # Show ticks only on the bottom spine
+
+        # Render the plot to a Pygame surface
+        canvas = agg.FigureCanvasAgg(fig)
+        canvas.draw()
+        renderer = canvas.get_renderer()
+        raw_data = renderer.tostring_rgb()
+
+        # Create a Pygame surface
+        size = canvas.get_width_height()
+        plot_surface = pygame.image.fromstring(raw_data, size, "RGB")
+
+        # Blit the plot surface onto the Pygame screen
+        screen.blit(plot_surface, plot_position)
+        plt.close(fig)  # Close the figure after drawing to avoid memory issues
 
     def update_display(self):
         pygame.display.flip()
-
-    def update_scroll(self, event):
-        if event.button == 4:  # Scroll up
-            self.scroll_y = min(self.scroll_y + 20, 0)
-        elif event.button == 5:  # Scroll down
-            self.scroll_y -= 20
 
     def random_obs(self, type):
         obs = ''

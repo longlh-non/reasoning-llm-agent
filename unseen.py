@@ -32,6 +32,11 @@ def run_environment():
 
     # Initialize the OpenAI LLM
     llm = ChatOpenAI(model="gpt-4o-mini", model_kwargs={ "response_format": { "type": "json_object" }})
+    iteration_times = 0
+    infering_times = 0
+    maximum_infering_times = 25
+    maximum_iterations = 50
+    reset = False
 
     # Create the environment
     env = gym.make('POMDPGridWorldEnv-v0',
@@ -39,7 +44,8 @@ def run_environment():
                    is_random_start = True,
                    is_random_reward = True,
                    is_random_cue_1 = True,
-                   is_random_cue_2_locs = True)
+                   is_random_cue_2_locs = True,
+                   maximum_infering_times = maximum_infering_times)
     observation, info = env.reset()
     env.render()  
 
@@ -47,11 +53,7 @@ def run_environment():
 
     agent = LLMAgent(llm, env)
     agent.reset()
-    iteration_times = 0
-    infering_times = 0
-    maximum_infering_times = 25
-    maximum_iterations = 25
-    reset = False
+
     print ('iteration_times < maximum_iterations: ', iteration_times < maximum_iterations)
     while iteration_times < maximum_iterations:
         iteration_times+=1
@@ -71,10 +73,6 @@ def run_environment():
             for event in events:
                 if event.type == pygame.QUIT:
                     done = True
-                # elif event.type == pygame.MOUSEBUTTONDOWN:
-                #     print('heerrererererere')
-                #     # Scroll the sidebar with mouse wheel
-                #     env.update_scroll(event)
 
             if done:
                 break
