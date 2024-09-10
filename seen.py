@@ -33,14 +33,14 @@ def run_environment():
 
     # Initialize the OpenAI LLM
     llm = ChatOpenAI(model="gpt-4o-mini", model_kwargs={ "response_format": { "type": "json_object" }})
-
-    # Create the environment
     iteration_times = 0
     infering_times = 0
-    maximum_infering_times = 30
+    maximum_infering_times = 20
     maximum_iterations = 50
     reset = False
+
     env = gym.make('POMDPGridWorldEnv-v0', start_pos = (5, 5), is_random_start = False, is_random_reward = False, maximum_infering_times = maximum_infering_times)
+    
     observation, info = env.reset()
     env.render()  
 
@@ -59,8 +59,7 @@ def run_environment():
                 agent.reset()
                 reset = False
         
-        while infering_times <= maximum_infering_times:
-            print("Infering time #", infering_times)
+        while infering_times <= maximum_infering_times and not reset:
 
             # reset = False
             events = pygame.event.get()
@@ -71,6 +70,8 @@ def run_environment():
             
             if done:
                 break
+
+            print("Step #", infering_times)
 
             agent_response = agent.act()
 
@@ -83,7 +84,7 @@ def run_environment():
             
             reset = info['reset']
             agent_response['reset'] = info['reset']
-            
+
             obs_message = agent.observe(llm_obs=agent_response, obs = observation)
 
             print('agent_response: ', agent_response)

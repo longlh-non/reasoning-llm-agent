@@ -26,13 +26,15 @@ class POMDPGridWorldEnv(gym.Env):
                 is_random_grid = False,
                 is_random_cue_1 = False, 
                 is_random_cue_2_locs = False,
-                maximum_infering_times = 50):
+                step_limitation = 50,
+                iteration_limitation = 50):
         
         super(POMDPGridWorldEnv, self).__init__()
 
         # Create a clock to control the frame rate
         self.clock = pygame.time.Clock()
-        self.maximum_infering_times = maximum_infering_times
+        self.step_limitation = step_limitation
+        self.iteration_limitation = iteration_limitation
 
         # Random env
         self.is_random_grid = is_random_grid
@@ -57,7 +59,13 @@ class POMDPGridWorldEnv(gym.Env):
         self.is_reward_horizontal = False 
         self.reward_obs = 'Null'
         self.prev_reward_location = 'Null'
-        self.steps_info = []
+        self.step_info = {
+                'next_action': '',
+                'action_reason': '',
+                'position': '',
+                'next_position': '',
+                'step_limitation': '',
+                'iteration_times': ''}
 
         if is_random_grid:
             self.row = np.random.randint(6, 10)
@@ -99,6 +107,9 @@ class POMDPGridWorldEnv(gym.Env):
         # Increment the step counter
         self.current_step = 0
         
+        # Increment the iteration counter
+        self.current_iteration = 0
+        
         # Initialize pygame
         pygame.init()
         self.font = pygame.font.SysFont(None, 24)
@@ -131,7 +142,7 @@ class POMDPGridWorldEnv(gym.Env):
         self.reset_log_file('agent_path.txt')
 
         # Define parameters for the POMDP
-        self.reset()
+        # self.reset()
 
     def reset_env_pos(self):
         if self.is_random_start:
@@ -171,7 +182,13 @@ class POMDPGridWorldEnv(gym.Env):
             "cue_1_location": self.cue_1_location
         }
 
-        self.steps_info = []
+        self.step_info = {
+                'next_action': '',
+                'action_reason': '',
+                'position': '',
+                'next_position': '',
+                'current_step': '',
+                'current_iteration': ''}
 
         self.reset_ui()
         self.reset_log()
@@ -180,7 +197,8 @@ class POMDPGridWorldEnv(gym.Env):
         
         # Define a goal position
         self.goal_pos = self.reward_locations[random_reward]
-        return self._get_observation(), {}
+        self.current_iteration+=1
+        return self._get_observation(), {'current_step': self.current_step, 'current_iteration': self.current_iteration}
     
     def reset_log(self):
         self.reset_log_file('agent_path.txt')
@@ -259,9 +277,8 @@ class POMDPGridWorldEnv(gym.Env):
     def step(self, action): 
         reset = False
 
-        self.steps_info.append(action)
-
-        if action['infering_times'] == self.maximum_infering_times:
+        self.step_info = action
+        if self.current_step == self.step_limitation:
             self.reset()
             reset = True
 
@@ -315,7 +332,7 @@ class POMDPGridWorldEnv(gym.Env):
         
         # Increment the step counter
         self.current_step += 1
-        return observation, self.reward_obs, self.done, { 'reset': reset }
+        return observation, self.reward_obs, self.done, { 'reset': reset, 'current_step': self.current_step, 'current_iteration': self.current_iteration }
 
     def render(self, mode='human'):
         self.screen.fill((255, 255, 255))  # White background
@@ -342,7 +359,6 @@ class POMDPGridWorldEnv(gym.Env):
         # Draw cue 2 locations
         if len(self.cue_2_rects) == 0:
             self.cue_2_rects = [pygame.Rect(loc[1] * self.cell_size, loc[0] * self.cell_size, self.cell_size, self.cell_size) for loc in self.cue_2_locations]
-        print('self.cue_2_locations:', self.cue_2_locations)
         for i, rect in enumerate(self.cue_2_rects):
             pygame.draw.rect(self.screen, (23, 173, 227), rect)
             text_surface = self.font.render(self.cue_2_loc_names[i], True, (0, 0, 0))
@@ -387,7 +403,7 @@ class POMDPGridWorldEnv(gym.Env):
         agent_text_rect = agent_text_surface.get_rect(center=agent_rect.center)
         self.screen.blit(agent_text_surface, agent_text_rect)
         
-        info_text_surface = self.font.render(f"Current location: {self.agent_pos}, Action: {self.agent_action}, Cue 2: {self.cue_1_obs} - {self.cue_2_location}", True, (0, 0, 0))
+        info_text_surface = self.font.render(f"Step #{self.current_step}/{self.step_limitation}, Current location: {self.agent_pos}, Action: {self.agent_action}, Cue 2: {self.cue_1_obs} - {self.cue_2_location}", True, (0, 0, 0))
         info_x = 10  # Padding from the left edge
         info_y = self.screen_height - self.info_height + 10  # Positioned at the bottom within the info area
         self.screen.blit(info_text_surface, (info_x, info_y))
@@ -402,12 +418,10 @@ class POMDPGridWorldEnv(gym.Env):
         info_2_y = self.screen_height - 2*self.info_height + 10  # Positioned at the bottom within the info area
         self.screen.blit(info_2_text_surface_2, (info_2_x, info_2_y))
 
-
         # Fill the main screen and sidebar area
         sidebar_color = (255, 255, 255)  # Light grey sidebar
         sidebar_rect = pygame.Rect(self.screen_width - self.sidebar_width, 0, self.sidebar_width, self.screen_height)
         self.screen.fill(sidebar_color, sidebar_rect)
-
         self.draw_sidebar(self.screen, sidebar_rect, sidebar_color)
         
         if (self.reward_obs != 'Null'):
@@ -431,8 +445,14 @@ class POMDPGridWorldEnv(gym.Env):
         # Plotting the custom values
         ax.plot(x_values, y_values, marker='o', linestyle='-', color='b')  # Adjust marker and line style as needed
         
+        # Add text on top of the plot
+        ax.text(0.5, 1.05, f'Experiment #{self.current_iteration}/{self.iteration_limitation}', 
+                horizontalalignment='center', 
+                verticalalignment='center', 
+                transform=ax.transAxes, fontsize=14, fontweight='bold')
+
         # Set the labels for the axes
-        ax.set_xlabel('Inferring Times')
+        ax.set_xlabel('Experiments')
         ax.set_ylabel('Results')
         
         # Set custom labels for the Y-axis ticks
@@ -441,7 +461,7 @@ class POMDPGridWorldEnv(gym.Env):
             'Cue 1',
             'Cue 2',
             'Shock',
-            'Chees'
+            'Cheese'
         ])
 
         # Ensure X-axis has integer values only
