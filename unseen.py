@@ -14,8 +14,7 @@ from LLMAgent import LLMAgent
 from utils import parse
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-
-
+from dotenv import load_dotenv
 
 # Test environment
 def run_environment():
@@ -26,10 +25,19 @@ def run_environment():
         entry_point='pomdp-grid-world-env:POMDPGridWorldEnv',
     )
 
-    # LangChain setup
-    # Set up OpenAI API key - MAKE THIS KEY PRIVATE
-    os.environ["OPENAI_API_KEY"] = "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"  # Replace with your actual API key
+    # Load environment variables from .env file
+    load_dotenv()
 
+    # Retrieve the OpenAI API key
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+
+    if not openai_api_key:
+        raise ValueError("Please set the OpenAI API key in the .env file.")
+
+    # Use the OpenAI API key
+    os.environ["OPENAI_API_KEY"] = openai_api_key
+
+    # LangChain setup
     # Initialize the OpenAI LLM
     llm = ChatOpenAI(model="gpt-4o-mini", model_kwargs={ "response_format": { "type": "json_object" }})
     current_iteration = 0

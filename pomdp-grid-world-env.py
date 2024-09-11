@@ -247,7 +247,7 @@ class POMDPGridWorldEnv(gym.Env):
 
     def reset_log_file(self, file_name):
         with open(self.log_file, 'w') as file:
-            file.write("\n")
+            file.write("")
     
     def log_agent_movement(self, step_count, next_action, action_reason, next_position, position, result):
         with open(self.log_file, 'a') as file:
