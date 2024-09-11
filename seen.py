@@ -33,13 +33,16 @@ def run_environment():
 
     # Initialize the OpenAI LLM
     llm = ChatOpenAI(model="gpt-4o-mini", model_kwargs={ "response_format": { "type": "json_object" }})
-    iteration_times = 0
-    infering_times = 0
-    maximum_infering_times = 20
-    maximum_iterations = 50
+    current_iteration = 0
+    step_limitation = 20
+    iteration_limitation = 50
     reset = False
 
-    env = gym.make('POMDPGridWorldEnv-v0', start_pos = (5, 5), is_random_start = False, is_random_reward = False, maximum_infering_times = maximum_infering_times)
+    env = gym.make('POMDPGridWorldEnv-v0', start_pos = (5, 5), 
+                   is_random_start = False,
+                   is_random_reward = False,
+                   step_limitation = step_limitation,
+                   iteration_limitation = iteration_limitation)
     
     observation, info = env.reset()
     env.render()  
@@ -48,18 +51,17 @@ def run_environment():
 
     agent = LLMAgent(llm, env)
     agent.reset()
-    print ('iteration_times < maximum_iterations: ', iteration_times < maximum_iterations, type='seen')
-    while iteration_times < maximum_iterations:
-        iteration_times+=1
-        print("Experiment #", iteration_times)
-        infering_times = 0
+
+    while current_iteration < iteration_limitation:
+        print("Experiment #", current_iteration)
+        current_step = 0
         
         if reset:
-                env.reset()
+                # env.reset()
                 agent.reset()
                 reset = False
         
-        while infering_times <= maximum_infering_times and not reset:
+        while current_step <= step_limitation and not reset:
 
             # reset = False
             events = pygame.event.get()
@@ -71,8 +73,6 @@ def run_environment():
             if done:
                 break
 
-            print("Step #", infering_times)
-
             agent_response = agent.act()
 
             observation, reward_obs, done, info = env.step({
@@ -80,8 +80,13 @@ def run_environment():
                 'action_reason': agent_response['action_reason'],
                 'position': agent_response['position'],
                 'next_position': agent_response['next_position'],
-                'infering_times': infering_times})
+                'current_step': current_step,
+                'current_iteration': current_iteration})
             
+            current_step = info['current_step']
+            current_iteration = info['current_iteration']
+            print("Step #", current_step)
+
             reset = info['reset']
             agent_response['reset'] = info['reset']
 
@@ -92,8 +97,6 @@ def run_environment():
             
             env.render()
             # print(f"Observation: {observation}, Action: {agent_response['action']}, Reward: {reward_obs}, Done: {done}")
-
-            infering_times+=1
 
             # Control the frame rate (limit to 1 frames per second)
             env.clock.tick(32)

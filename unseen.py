@@ -55,7 +55,6 @@ def run_environment():
     agent = LLMAgent(llm, env)
     agent.reset()
 
-    print ('iteration_times < maximum_iterations: ', current_iteration < iteration_limitation)
     while current_iteration <= iteration_limitation:
         print("Experiment #", current_iteration)
         current_step = 0
@@ -76,6 +75,7 @@ def run_environment():
 
             if done:
                 break
+            
             agent_response = agent.act()
 
             observation, reward_obs, done, info = env.step({

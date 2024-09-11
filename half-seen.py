@@ -11,6 +11,7 @@ from langchain.agents import AgentExecutor, create_react_agent, Tool
 from langchain.agents.format_scratchpad import format_to_openai_function_messages
 from typing import List
 from LLMAgent import LLMAgent
+from LLMActiveInferenceAgent import LLMActiveInferenceAgent
 from utils import parse
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -32,9 +33,18 @@ def run_environment():
 
     # Initialize the OpenAI LLM
     llm = ChatOpenAI(model="gpt-4o-mini", model_kwargs={ "response_format": { "type": "json_object" }})
+    current_iteration = 0
+    step_limitation = 20
+    iteration_limitation = 50
+    reset = False
 
-    # Create the environment
-    env = gym.make('POMDPGridWorldEnv-v0', start_pos = (5, 5), is_random_start = True, is_random_reward = True)
+    env = gym.make('POMDPGridWorldEnv-v0', start_pos = (5, 5), 
+                   is_random_start = True,
+                   is_random_reward = True,
+                   step_limitation = step_limitation,
+                   iteration_limitation = iteration_limitation,
+                   type='half_seen')
+    
     observation, info = env.reset()
     env.render()  
 
@@ -42,24 +52,17 @@ def run_environment():
 
     agent = LLMAgent(llm, env)
     agent.reset()
-    iteration_times = 0
-    infering_times = 0
-    maximum_infering_times = 50
-    maximum_iterations = 50
-    reset = False
-    print ('iteration_times < maximum_iterations: ', iteration_times < maximum_iterations)
-    while iteration_times < maximum_iterations:
-        iteration_times+=1
-        print("Experiment #", iteration_times)
-        infering_times = 0
+
+    while current_iteration < iteration_limitation:
+        print("Experiment #", current_iteration)
+        current_step = 0
         
         if reset:
-                env.reset()
+                # env.reset()
                 agent.reset()
                 reset = False
         
-        while infering_times < maximum_infering_times and not reset:
-            print("Infering time #", infering_times)
+        while current_step <= step_limitation and not reset:
 
             # reset = False
             events = pygame.event.get()
@@ -67,9 +70,6 @@ def run_environment():
             for event in events:
                 if event.type == pygame.QUIT:
                     done = True
-                # elif event.type == pygame.MOUSEBUTTONDOWN:
-                #     # Scroll the sidebar with mouse wheel
-                #     env.update_scroll(event)
             
             if done:
                 break
@@ -81,11 +81,16 @@ def run_environment():
                 'action_reason': agent_response['action_reason'],
                 'position': agent_response['position'],
                 'next_position': agent_response['next_position'],
-                'infering_times': infering_times})
+                'current_step': current_step,
+                'current_iteration': current_iteration})
             
+            current_step = info['current_step']
+            current_iteration = info['current_iteration']
+            print("Step #", current_step)
+
             reset = info['reset']
             agent_response['reset'] = info['reset']
-            
+
             obs_message = agent.observe(llm_obs=agent_response, obs = observation)
 
             print('agent_response: ', agent_response)
@@ -93,8 +98,6 @@ def run_environment():
             
             env.render()
             # print(f"Observation: {observation}, Action: {agent_response['action']}, Reward: {reward_obs}, Done: {done}")
-
-            infering_times+=1
 
             # Control the frame rate (limit to 1 frames per second)
             env.clock.tick(32)

@@ -138,11 +138,12 @@ class POMDPGridWorldEnv(gym.Env):
         self.ne = 0
         self.current_result = 0
         self.current_exp_results = [0]
-
+        self.final_position = 'Null'
+        
         self.log_file = log_file
         self.reset_log_file(self.log_file)  # Resets the log file at the start of each run
         self.reset_log_file('agent_path.txt')
-
+        self.reset_log_file(f'result_{self.type}.txt')
         # Define parameters for the POMDP
         # self.reset()
 
@@ -201,7 +202,7 @@ class POMDPGridWorldEnv(gym.Env):
         self.goal_pos = self.reward_locations[random_reward]
         self.current_iteration+=1
         if self.current_iteration == self.iteration_limitation:
-            self.log_info(self.current_exp_results, f'result_{self.type}')
+            self.log_info(self.current_exp_results, f'result_{self.type}.txt')
         return self._get_observation(), {'current_step': self.current_step, 'current_iteration': self.current_iteration}
     
     def reset_log(self):
@@ -265,7 +266,7 @@ class POMDPGridWorldEnv(gym.Env):
 
     def log_info(self, info, file_name):
         with open(file_name, 'a') as file:
-            file.write(f"{info}\n")
+            file.write(f"{info}")
 
     def log_experiment_results(self, info):
         with open('experiments_results.txt', 'a') as file:
