@@ -42,7 +42,8 @@ def run_environment():
                    is_random_start = False,
                    is_random_reward = False,
                    step_limitation = step_limitation,
-                   iteration_limitation = iteration_limitation)
+                   iteration_limitation = iteration_limitation,
+                   type = 'seen')
     
     observation, info = env.reset()
     env.render()  
