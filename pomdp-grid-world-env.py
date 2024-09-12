@@ -76,6 +76,7 @@ class POMDPGridWorldEnv(gym.Env):
             self.row = 6
             self.column = 8
         
+        self.grid_dims = [self.row, self.column]
         self.grid_world_dimension = (self.row, self.column)
 
         # Initialize the agent's position randomly
@@ -203,7 +204,7 @@ class POMDPGridWorldEnv(gym.Env):
         self.current_iteration+=1
         if self.current_iteration == self.iteration_limitation:
             self.log_info(self.current_exp_results, f'result_{self.type}.txt')
-        return self._get_observation(), {'current_step': self.current_step, 'current_iteration': self.current_iteration}
+        return self._get_observation(), {'current_step': self.current_step, 'current_iteration': self.current_iteration, 'loc_obs': self.agent_pos, 'cue_1_obs': self.cue_1_obs, 'cue_2_obs': self.cue_2_obs, 'reward_obs': self.reward_obs }
     
     def reset_log(self):
         self.reset_log_file('agent_path.txt')
@@ -281,7 +282,7 @@ class POMDPGridWorldEnv(gym.Env):
         
     def step(self, action): 
         reset = False
-
+        cue_1_obs = 'Null'
         self.step_info = action
         if self.current_step == self.step_limitation:
             self.reset()
@@ -289,7 +290,35 @@ class POMDPGridWorldEnv(gym.Env):
 
         else:
             self.agent_action = action['next_action']
-            self.agent_pos = eval(action['position'])
+
+            if self.is_using_llm:
+                self.agent_pos = eval(action['position'])
+            else:
+                (Y, X) = self.agent_pos
+
+                if self.agent_action == "UP":
+
+                    Y_new = Y - 1 if Y > 0 else Y
+                    X_new = X
+
+                elif self.agent_action == "DOWN":
+
+                    Y_new = Y + 1 if Y < (self.grid_dims[0]-1) else Y
+                    X_new = X
+
+                elif self.agent_action == "LEFT":
+                    Y_new = Y
+                    X_new = X - 1 if X > 0 else X
+
+                elif self.agent_action == "RIGHT":
+                    Y_new = Y
+                    X_new = X +1 if X < (self.grid_dims[1]-1) else X
+
+                elif self.agent_action == "STAY":
+                    Y_new, X_new = Y, X
+
+                self.agent_pos = (Y_new, X_new) # store the new grid location
+
             if self.agent_pos == self.cue_1_location and self.is_cue_1_reached != True:
                 self.is_cue_1_reached = True
                 self.current_result = 1
@@ -327,18 +356,21 @@ class POMDPGridWorldEnv(gym.Env):
                     self.current_result = 3
 
                 reset = True
+        
         if reset == True:
             self.current_exp_results.append(self.current_result)
         # Get the new observation
         observation = self._get_observation()
 
         # Log the agent's movement after the step
-        self.log_agent_movement(self.current_step, next_position = action['next_position'], next_action = action['next_action'], action_reason = action['action_reason'], position = self.agent_pos, result = self.result)
+        if self.is_using_llm:
+            self.log_agent_movement(self.current_step, next_position = action['next_position'], next_action = action['next_action'], action_reason = action['action_reason'], position = self.agent_pos, result = self.result)
         
         # Increment the step counter
         self.current_step += 1
-        return observation, self.reward_obs, self.done, { 'reset': reset, 'current_step': self.current_step, 'current_iteration': self.current_iteration }
+        return observation, self.reward_obs, self.done, { 'reset': reset, 'current_step': self.current_step, 'current_iteration': self.current_iteration, 'loc_obs': self.agent_pos, 'cue_1_obs': self.cue_1_obs, 'cue_2_obs': self.cue_2_obs, 'reward_obs': self.reward_obs  }
 
+    # Render screen
     def render(self, mode='human'):
         self.screen.fill((255, 255, 255))  # White background
 
@@ -496,7 +528,7 @@ class POMDPGridWorldEnv(gym.Env):
         pygame.display.flip()
 
     def random_obs(self, type):
-        obs = ''
+        obs = 'Null'
         obs_location = ''
         if type == 'cue_1':
             rand_idx = np.random.randint(4)
@@ -513,6 +545,8 @@ class POMDPGridWorldEnv(gym.Env):
             obs_location = self.reward_location
 
         self.log_random_obs(self.current_step, obs, obs_location)
+
+        return obs
         
     def show_reward_popup(self):
         popup_width = 300
