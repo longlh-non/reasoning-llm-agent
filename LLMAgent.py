@@ -29,8 +29,8 @@ class LLMAgent:
             Once CUE 2's location has been revealed, by visiting that location the agent will then receive one of two possible signals that indicate where the hidden reward is located (and conversely, where the hidden punishment lies).
 
             These two possible types of REWARD CONDITIONS which are reward/punishment locations are indicated by two locations and we have 2 ways to define this: 
-            - [TOP, BOTTOM]: "TOP" (meaning the CHEESE reward is on the upper of the two locations and SHOCK punishment is on the lower one) or "BOTTOM" (meaning the CHEESE reward is on the lower of the two locations and SHOCK punishment is on the upper one).
-            - [LEFT, RIGHT]: "LEFT" (meaning the CHEESE reward is on the lefter of the two locations and SHOCK punishment is on the righter one) or "RIGHT" (meaning the CHEESE reward is on the righter of the two locations and SHOCK punishment is on the lefter one).
+            - [FIRST, SECOND]: "FIRST" (meaning the CHEESE reward is on the upper of the two locations and SHOCK punishment is on the lower one) or "SECOND" (meaning the CHEESE reward is on the lower of the two locations and SHOCK punishment is on the upper one).
+            - [FIRST, SECOND]: "FIRST" (meaning the CHEESE reward is on the lefter of the two locations and SHOCK punishment is on the righter one) or "SECOND" (meaning the CHEESE reward is on the righter of the two locations and SHOCK punishment is on the lefter one).
 
             These are the actions you can only do: MOVE_UP meaning you will move upward one cell, MOVE_DOWN meaning you will move upward one cell, MOVE_LEFT meaning you will move left one cell, MOVE_RIGHT meaning you will move right one cell, STAY meaning you stay at current cell and you can only perform and move one cell per state.
 
@@ -113,8 +113,8 @@ class LLMAgent:
             Once CUE 2's location has been revealed, by visiting that location the agent will then receive one of two possible signals that indicate where the hidden reward is located (and conversely, where the hidden punishment lies).
 
             These two possible types of REWARD CONDITIONS which are reward/punishment locations are indicated by two locations and we have 2 ways to define this: 
-            - [TOP, BOTTOM]: "TOP" (meaning the CHEESE reward is on the upper of the two locations and SHOCK punishment is on the lower one) or "BOTTOM" (meaning the CHEESE reward is on the lower of the two locations and SHOCK punishment is on the upper one).
-            - [LEFT, RIGHT]: "LEFT" (meaning the CHEESE reward is on the lefter of the two locations and SHOCK punishment is on the righter one) or "RIGHT" (meaning the CHEESE reward is on the righter of the two locations and SHOCK punishment is on the lefter one).
+            - [FIRST, SECOND]: "FIRST" (meaning the CHEESE reward is on the upper of the two locations and SHOCK punishment is on the lower one) or "SECOND" (meaning the CHEESE reward is on the lower of the two locations and SHOCK punishment is on the upper one).
+            - [FIRST, SECOND]: "FIRST" (meaning the CHEESE reward is on the lefter of the two locations and SHOCK punishment is on the righter one) or "SECOND" (meaning the CHEESE reward is on the righter of the two locations and SHOCK punishment is on the lefter one).
 
             These are the actions you can only do: MOVE_UP meaning you will move upward one cell, MOVE_DOWN meaning you will move upward one cell, MOVE_LEFT meaning you will move left one cell, MOVE_RIGHT meaning you will move right one cell, STAY meaning you stay at current cell and you can only perform and move one cell per state.
 
