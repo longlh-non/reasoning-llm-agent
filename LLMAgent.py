@@ -130,7 +130,7 @@ class LLMAgent:
 
             Your current location is {self.env.agent_pos}.
 
-            Based on the above information, decide the next action to take.
+            Based on the above information as your instruction, you should take your output as your state to update the your belief to minimize the uncertainty about the environment then decide which the best action to perform next.
 
             Return only the JSON object with no additional text or formatting:
             {{
