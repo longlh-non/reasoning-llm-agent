@@ -103,6 +103,6 @@ This measure is essential in determining risk-aversion and the capability of the
 ![Unseen FR](/image/unseen/sr.png "This is Unseen's FR plotting")
 
 ## References
-pygame/pygame. (2020, March 8). GitHub. https://github.com/pygame/pygamec<br>
+*pygame/pygame. (2020, March 8). GitHub. https://github.com/pygame/pygame*<br>
 
-Towers, M., Kwiatkowski, A., Terry, J., Balis, J. U., Cola, D., Deleu, T., Goulão, M., Kallinteris, A., Krimmel, M., KG, A., Perez-Vicente, R., Pierré, A., Schulhoff, S., Tai, J. J., Tan, H., & Younis, O. G. (2024). Gymnasium: A Standard Interface for Reinforcement Learning Environments. ArXiv.org. https://arxiv.org/abs/2407.17032 <br>
+*Towers, M., Kwiatkowski, A., Terry, J., Balis, J. U., Cola, D., Deleu, T., Goulão, M., Kallinteris, A., Krimmel, M., KG, A., Perez-Vicente, R., Pierré, A., Schulhoff, S., Tai, J. J., Tan, H., & Younis, O. G. (2024). Gymnasium: A Standard Interface for Reinforcement Learning Environments. ArXiv.org. https://arxiv.org/abs/2407.17032* <br>
