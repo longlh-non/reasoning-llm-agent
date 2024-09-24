@@ -52,22 +52,25 @@ The data plotting will be done through a separate notebook so as not to affect t
 3 - Hit Shock
 4 - Reach Cheese*
 
-**Metrics**
-Success Rate (SR)
+#### Metrics
+**Success Rate (SR)**
 The percentage of attempts where the agent is able to reach the positive reward ("Cheese") without touching any of the negative outcomes ("Shock"). Success rate will be calculated as number of successes divided by the number of trials. 
 It shall serve as an indicator with respect to how well the agent can navigate to and find those positive outcomes based on the cues provided.
-Goal-condition Success Rate (GC)
+
+**Goal-condition Success Rate (GC)**
 This assessment would reflect success rates only in terms of the fulfillment of the predefined sub-goals or goal conditions as set out in a task. Each of the cues, as in Cue 1 and Cue 2, and each of the decisions, as in choosing the correct reward position, might be treated as a goal condition. GC is the percent of trials in which each specific goal condition  such as correctly reaching Cue 1, correctly reaching Cue 2, and selecting the correct reward position - is successfully met.
 This is done with the purpose of understanding, from GC, the agent's efficiency at various steps of decision-making and cue integration in order to pinpoint where performance could be improved.
-Failure Rate
+
+**Failure Rate**
 The fraction of test cases wherein the agent fails to receive the end reward through running out of moves, making incorrect choices, or failing to reach the final target within a predetermined amount of time or moves. The failure rate will be calculated as the total number of failed trials divided by the sum of all the trials. 
 It provides a background of the failures met, or the complications that the agent finds, in order to establish how fertile these could be in revealing the weaknesses of the agent in its decision or cue-processing capability.
-Shock Hit Rate (SHR)
+
+**Shock Hit Rate (SHR)**
 SHR calculates how often the agent incorrectly navigates to the negative outcome called "Shock" instead of the positive reward. The SHR is calculated as the number of trials where the agent reaches the Shock, divided by the total number of trials.
 This measure is essential in determining risk-aversion and the capability of the agent in avoiding negative consequences given partial or misleading cues.
 
 
-**Seen results plotting**
+#### Seen results plotting
 
 ![Half-Seen result plotting](/image/seen/result.png "This is Seen's results plotting")
 
@@ -76,7 +79,7 @@ This measure is essential in determining risk-aversion and the capability of the
 
 ![Half-Seen FR](/image/seen/sr.png "This is Seen's FR plotting")
 
-**Half-Seen results plotting**
+#### Half-Seen results plotting
 
 ![Half-Seen result plotting](/image/half-seen/result.png "This is Half-Seen's results plotting")
 
@@ -87,7 +90,8 @@ This measure is essential in determining risk-aversion and the capability of the
 
 ![Half-Seen FR](/image/half-seen/sr.png "This is Half-Seen's FR plotting")
 
-**Unseen results plotting**
+
+#### Unseen results plotting
 
 ![Unseen result plotting](/image/unseen/result.png "This is Unseen's results plotting")
 
@@ -97,3 +101,5 @@ This measure is essential in determining risk-aversion and the capability of the
 
 
 ![Unseen FR](/image/unseen/sr.png "This is Unseen's FR plotting")
+
+## References
